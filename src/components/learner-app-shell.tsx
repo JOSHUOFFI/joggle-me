@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   FileText,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Menu,
   Moon,
@@ -48,7 +49,10 @@ const navigation = [
   },
   {
     label: "PREFERENCES",
-    links: [{ label: "Settings", href: "/profile", Icon: Settings2 }],
+    links: [
+      { label: "Settings", href: "/profile", Icon: Settings2 },
+      { label: "Help & Support", href: "/dashboard/community/questions", Icon: LifeBuoy },
+    ],
   },
 ] as const;
 
@@ -69,6 +73,9 @@ function isActiveLink(href: string, pathname: string, currentHash: string) {
   if (pathname === route && hash) return currentHash ? currentHash === `#${hash}` : route === "/dashboard/performance" && hash === "subject-performance-heading";
   if (pathname !== route) {
     if (route === "/dashboard/quizzes" && pathname.startsWith(`${route}/`) && !pathname.startsWith(`${route}/new`)) return true;
+    if (route === "/dashboard/community" && pathname.startsWith(`${route}/`)) {
+      return !pathname.startsWith(`${route}/activity`) && !pathname.startsWith(`${route}/questions`);
+    }
     if (route === "/dashboard#gamification") return false;
     return false;
   }
