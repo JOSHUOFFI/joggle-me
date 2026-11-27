@@ -1,10 +1,6 @@
 import { parseAppRoles, requireAuthenticatedUser } from "@/lib/auth";
 import { AppShell } from "@/components/app-shell";
-import { LearningMaterials } from "@/components/learning-materials";
 import { Card } from "@/components/ui/card";
-import { getMaxUploadBytes } from "@/lib/materials/files";
-import { isFeatureEnabled } from "@/lib/features";
-import { QuizDashboardSection } from "@/components/quiz-library";
 import { GamificationDashboard } from "@/components/gamification-dashboard";
 import {
   GamificationDataError,
@@ -24,20 +20,15 @@ import {
 } from "@/components/dashboard-overview";
 import { DashboardCommunityPreview } from "@/components/dashboard-community-preview";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ materials_error?: string }>;
-}) {
+export default async function DashboardPage() {
   const { supabase, user } = await requireAuthenticatedUser();
-  const [{ data: profile }, { data: roleRows }, params] = await Promise.all([
+  const [{ data: profile }, { data: roleRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select("first_name,last_name,learner_category")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.rpc("get_my_roles"),
-    searchParams,
   ]);
   const isLearner = parseAppRoles(roleRows).includes("learner");
 
@@ -72,13 +63,6 @@ export default async function DashboardPage({
             </div>
             <DashboardCommunityPreview supabase={supabase} userId={user.id} />
             {gamification && <GamificationSection data={gamification.data} loadError={gamification.error} />}
-            <LearnerMaterialsSection
-              supabase={supabase}
-              userId={user.id}
-              maxUploadBytes={getMaxUploadBytes()}
-              actionError={params.materials_error}
-            />
-            <QuizDashboardSection supabase={supabase} userId={user.id} />
           </>
         )}
       </div>
@@ -121,43 +105,3 @@ function GamificationSection({ data, loadError }: {
   return <GamificationDashboard data={data} />;
 }
 
-async function LearnerMaterialsSection({
-  supabase,
-  userId,
-  maxUploadBytes,
-  actionError,
-}: {
-  supabase: Awaited<ReturnType<typeof requireAuthenticatedUser>>["supabase"];
-  userId: string;
-  maxUploadBytes: number;
-  actionError?: string;
-}) {
-  const [uploadsEnabled, analysisEnabled, documentResult] = await Promise.all([
-    isFeatureEnabled(supabase, "learning_material_uploads"),
-    isFeatureEnabled(supabase, "ai_document_analysis"),
-    supabase
-      .from("learning_documents")
-      .select(
-        "id,original_filename,file_type,byte_size,status,extraction_status,analysis_status,error_message,analysis,created_at",
-      )
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false }),
-  ]);
-  const documents = (documentResult.data ?? []).map((document) => ({
-    ...document,
-    analysis:
-      typeof document.analysis === "object" && document.analysis !== null
-        ? document.analysis as { title?: string }
-        : null,
-  }));
-
-  return (
-    <LearningMaterials
-      documents={documents}
-      uploadEnabled={uploadsEnabled && analysisEnabled}
-      maxUploadBytes={maxUploadBytes}
-      loadError={Boolean(documentResult.error)}
-      actionError={actionError}
-    />
-  );
-}

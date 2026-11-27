@@ -31,7 +31,7 @@ const navigation = [
   {
     label: "LEARNING",
     links: [
-      { label: "Learning Materials", href: "/dashboard#learning-materials", Icon: FileText },
+      { label: "Learning Materials", href: "/dashboard/materials", Icon: FileText },
       { label: "AI Quiz Generator", href: "/dashboard/quizzes/new", Icon: Sparkles },
       { label: "Examinations", href: "/dashboard/quizzes", Icon: ClipboardCheck },
       { label: "Results", href: "/dashboard/performance#performance-history-heading", Icon: Activity },
@@ -69,7 +69,7 @@ function isActiveLink(href: string, pathname: string, currentHash: string) {
   if (pathname === route && hash) return currentHash ? currentHash === `#${hash}` : route === "/dashboard/performance" && hash === "subject-performance-heading";
   if (pathname !== route) {
     if (route === "/dashboard/quizzes" && pathname.startsWith(`${route}/`) && !pathname.startsWith(`${route}/new`)) return true;
-    if (route === "/dashboard#learning-materials" || route === "/dashboard#gamification") return false;
+    if (route === "/dashboard#gamification") return false;
     return false;
   }
   if (route === "/dashboard") return !currentHash;

@@ -15,7 +15,7 @@ const documentIdSchema = z.uuid();
 
 export async function retryLearningDocumentAction(formData: FormData) {
   const documentId = documentIdSchema.safeParse(formData.get("documentId"));
-  if (!documentId.success) redirect("/dashboard?materials_error=invalid");
+  if (!documentId.success) redirect("/dashboard/materials?materials_error=invalid");
 
   const { supabase, user } = await requireRole(["learner"]);
   const uploadsEnabled = await isFeatureEnabled(
@@ -27,7 +27,7 @@ export async function retryLearningDocumentAction(formData: FormData) {
     "ai_document_analysis",
   );
   if (!uploadsEnabled || !analysisEnabled) {
-    redirect("/dashboard?materials_error=disabled");
+    redirect("/dashboard/materials?materials_error=disabled");
   }
 
   const { data: queued, error } = await supabase.rpc(
@@ -39,18 +39,19 @@ export async function retryLearningDocumentAction(formData: FormData) {
       documentId: documentId.data,
       code: error?.code ?? null,
     });
-    redirect("/dashboard?materials_error=retry");
+    redirect("/dashboard/materials?materials_error=retry");
   }
 
   after(() => processLearningDocument(documentId.data, user.id));
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/materials");
   revalidatePath(`/dashboard/materials/${documentId.data}`);
-  redirect("/dashboard");
+  redirect("/dashboard/materials");
 }
 
 export async function deleteLearningDocumentAction(formData: FormData) {
   const documentId = documentIdSchema.safeParse(formData.get("documentId"));
-  if (!documentId.success) redirect("/dashboard?materials_error=invalid");
+  if (!documentId.success) redirect("/dashboard/materials?materials_error=invalid");
 
   const { supabase } = await requireRole(["learner"]);
   const { data: document, error: readError } = await supabase
@@ -59,7 +60,7 @@ export async function deleteLearningDocumentAction(formData: FormData) {
     .eq("id", documentId.data)
     .maybeSingle();
   if (readError || !document) {
-    redirect("/dashboard?materials_error=delete");
+    redirect("/dashboard/materials?materials_error=delete");
   }
 
   const { data: objectKey, error: beginError } = await supabase.rpc(
@@ -67,7 +68,7 @@ export async function deleteLearningDocumentAction(formData: FormData) {
     { p_document_id: documentId.data },
   );
   if (beginError || typeof objectKey !== "string") {
-    redirect("/dashboard?materials_error=delete");
+    redirect("/dashboard/materials?materials_error=delete");
   }
 
   let admin: ReturnType<typeof createAdminSupabaseClient>;
@@ -84,7 +85,7 @@ export async function deleteLearningDocumentAction(formData: FormData) {
         documentId: documentId.data,
       });
     }
-    redirect("/dashboard?materials_error=delete");
+    redirect("/dashboard/materials?materials_error=delete");
   }
 
   const { error: storageError } = await admin.storage
@@ -104,7 +105,7 @@ export async function deleteLearningDocumentAction(formData: FormData) {
         documentId: documentId.data,
       });
     }
-    redirect("/dashboard?materials_error=delete");
+      redirect("/dashboard/materials?materials_error=delete");
   }
 
   const { data: deleted, error: finalizeError } = await supabase.rpc(
@@ -116,10 +117,11 @@ export async function deleteLearningDocumentAction(formData: FormData) {
       documentId: documentId.data,
       code: finalizeError?.code ?? null,
     });
-    redirect("/dashboard?materials_error=delete");
+    redirect("/dashboard/materials?materials_error=delete");
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/materials");
   revalidatePath(`/dashboard/materials/${documentId.data}`);
-  redirect("/dashboard");
+  redirect("/dashboard/materials");
 }

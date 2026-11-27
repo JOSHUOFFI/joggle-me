@@ -67,7 +67,7 @@ export function DashboardWelcome({ name }: { name: string }) {
           Keep building your knowledge, one focused session at a time. Pick up where you left off or choose your next step.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="#learning-materials" className="dashboard-welcome-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold">
+          <Link href="/dashboard/materials" className="dashboard-welcome-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold">
             Upload a material <ArrowRight size={16} aria-hidden="true" />
           </Link>
           <Link href="/dashboard/quizzes/new" className="dashboard-welcome-secondary inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold">
@@ -148,7 +148,7 @@ export function ContinueLearning({ data }: { data: DashboardOverview }) {
           Open latest quiz <ArrowRight size={16} aria-hidden="true" />
         </Link>
       ) : (
-        <Link href="#learning-materials" className="dashboard-primary-link mt-5 inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-xl px-4 text-sm font-semibold">
+        <Link href="/dashboard/materials" className="dashboard-primary-link mt-5 inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-xl px-4 text-sm font-semibold">
           Add learning material <ArrowRight size={16} aria-hidden="true" />
         </Link>
       )}
@@ -164,7 +164,7 @@ export function RecentMaterialsPreview({ data }: { data: DashboardOverview }) {
           <h2 className="dashboard-heading text-lg font-bold">Recent learning materials</h2>
           <p className="dashboard-muted mt-1 text-sm">Your latest documents and analysis state</p>
         </div>
-        <Link href="#learning-materials" className="dashboard-inline-link shrink-0">View library <ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link href="/dashboard/materials" className="dashboard-inline-link shrink-0">View library <ArrowRight size={15} aria-hidden="true" /></Link>
       </div>
       {!data.documentsAvailable ? (
         <p className="dashboard-muted mt-4 rounded-xl bg-[#F7F7FC] p-4 text-sm" role="status">Recent materials could not be loaded right now.</p>
@@ -280,8 +280,8 @@ export function RecommendationPanel({ data }: { data: DashboardOverview }) {
       : readyMaterial
         ? { title: "Create a quiz from your material", detail: "Use your analysed study notes to build focused practice.", href: "/dashboard/quizzes/new", label: "Generate a quiz" }
         : data.materialCount !== null && data.materialCount > 0
-          ? { title: "Check your material library", detail: "Review processing status and open any materials that are ready to use.", href: "#learning-materials", label: "View materials" }
-          : { title: "Build your learning library", detail: "Add study notes and discover the learning tools available to you.", href: "#learning-materials", label: "Upload material" };
+          ? { title: "Check your material library", detail: "Review processing status and open any materials that are ready to use.", href: "/dashboard/materials", label: "View materials" }
+          : { title: "Build your learning library", detail: "Add study notes and discover the learning tools available to you.", href: "/dashboard/materials", label: "Upload material" };
   return (
     <Card className="dashboard-recommendation flex h-full flex-col justify-between p-5 sm:p-6">
       <div>
