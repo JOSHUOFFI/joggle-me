@@ -270,12 +270,12 @@ export function PerformancePreview({ data }: { data: DashboardOverview }) {
 
 export function RecommendationPanel({ data }: { data: DashboardOverview }) {
   const readyMaterial = data.analyzedMaterialCount !== null && data.analyzedMaterialCount > 0;
-  const dataUnavailable = data.completedExamCount === null || data.quizCount === null || data.materialCount === null || data.analyzedMaterialCount === null;
+  const dataUnavailable = data.completedExamCount === null || data.readyQuizCount === null || data.materialCount === null || data.analyzedMaterialCount === null;
   const recommendation = data.completedExamCount !== null && data.completedExamCount > 0
     ? { title: "Review your recent performance", detail: "See your results and choose a topic to strengthen.", href: "/dashboard/performance", label: "View analytics" }
     : dataUnavailable
       ? { title: "Explore your learning tools", detail: "Your personal learning data is temporarily unavailable. Choose a tool to continue.", href: "/dashboard/quizzes", label: "View learning tools" }
-      : data.quizCount !== null && data.quizCount > 0
+      : data.readyQuizCount !== null && data.readyQuizCount > 0
       ? { title: "Put your practice into action", detail: "Choose a ready quiz and start an examination.", href: "/dashboard/quizzes", label: "Explore quizzes" }
       : readyMaterial
         ? { title: "Create a quiz from your material", detail: "Use your analysed study notes to build focused practice.", href: "/dashboard/quizzes/new", label: "Generate a quiz" }
@@ -338,6 +338,8 @@ export function RecentActivity({ data }: { data: DashboardOverview }) {
             </li>
           ))}
         </ul>
+      ) : !data.documentsAvailable && !data.quizzesAvailable && !data.attemptsAvailable ? (
+        <p className="dashboard-muted mt-4 rounded-xl bg-[#F7F7FC] p-4 text-sm" role="status">Recent activity is temporarily unavailable.</p>
       ) : (
         <p className="dashboard-muted mt-4 rounded-xl bg-[#F7F7FC] p-4 text-sm">Your learning activity will appear here as you explore the platform.</p>
       )}

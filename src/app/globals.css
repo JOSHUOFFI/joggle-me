@@ -587,6 +587,10 @@ html.dark {
 .dark .dashboard-empty-state { background: #242135; }
 .dashboard-xp-summary { display: flex; min-height: 54px; flex-wrap: wrap; align-items: center; gap: 12px; border: 1px solid var(--learner-border); border-radius: 14px; background: var(--learner-surface); padding: 10px 15px; color: #7655d9; font-size: 13px; }
 .dashboard-xp-summary strong { color: var(--learner-text); }
+.dashboard-gamification-details > summary { display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--learner-border); border-radius: 12px; background: var(--learner-surface); padding: 10px 14px; color: var(--learner-text); font-size: 13px; font-weight: 650; cursor: pointer; transition: border-color 150ms ease, color 150ms ease; }
+.dashboard-gamification-details > summary:hover { border-color: #b7a3ff; color: #6745c4; }
+.dark .dashboard-gamification-details > summary:hover { color: #c8baff; }
+.dashboard-gamification-details > summary:focus-visible { outline: 3px solid rgba(118, 85, 217, .4); outline-offset: 2px; }
 .dashboard-primary-link { background: #35216b; color: #fff; text-decoration: none; transition: background 150ms ease, transform 150ms ease; }
 .dashboard-primary-link:hover { background: #7655d9; transform: translateY(-1px); }
 .dashboard-activity-link { text-decoration: none; transition: background-color 140ms ease; }

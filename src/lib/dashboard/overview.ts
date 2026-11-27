@@ -39,6 +39,7 @@ export type DashboardOverview = {
   materialCount: number | null;
   analyzedMaterialCount: number | null;
   quizCount: number | null;
+  readyQuizCount: number | null;
   completedExamCount: number | null;
   recentAverage: number | null;
   attemptsAvailable: boolean;
@@ -55,21 +56,22 @@ function checkedRows<T>(
   table: string,
   data: unknown,
   schema: z.ZodType<T>,
-): T[] {
+): T[] | null {
   const parsed = z.array(schema).safeParse(data);
   if (parsed.success) return parsed.data;
   logger.warn("Learner dashboard data failed validation", { table });
-  return [];
+  return null;
 }
 
 export async function loadDashboardOverview(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<DashboardOverview> {
-  const [materialCountResult, analyzedCountResult, quizCountResult, examCountResult, attemptsResult, activeResult, documentsResult, quizzesResult] = await Promise.all([
+  const [materialCountResult, analyzedCountResult, quizCountResult, readyQuizCountResult, examCountResult, attemptsResult, activeResult, documentsResult, quizzesResult] = await Promise.all([
     supabase.from("learning_documents").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("learning_documents").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("analysis_status", "ready"),
     supabase.from("learning_quizzes").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.from("learning_quizzes").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("generation_status", "ready"),
     supabase.from("quiz_attempts").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "submitted"),
     supabase.from("quiz_attempts").select("id,quiz_id,percentage,submitted_at").eq("user_id", userId).eq("status", "submitted").order("submitted_at", { ascending: false }).limit(6),
     supabase.from("quiz_attempts").select("id,quiz_id,started_at,deadline_at").eq("user_id", userId).eq("status", "in_progress").order("started_at", { ascending: false }).limit(1),
@@ -80,19 +82,27 @@ export async function loadDashboardOverview(
   if (materialCountResult.error) logger.warn("Learner material count unavailable", { code: materialCountResult.error.code });
   if (analyzedCountResult.error) logger.warn("Learner analysed material count unavailable", { code: analyzedCountResult.error.code });
   if (quizCountResult.error) logger.warn("Learner quiz count unavailable", { code: quizCountResult.error.code });
+  if (readyQuizCountResult.error) logger.warn("Learner ready quiz count unavailable", { code: readyQuizCountResult.error.code });
   if (examCountResult.error) logger.warn("Learner exam count unavailable", { code: examCountResult.error.code });
   if (attemptsResult.error) logger.warn("Learner recent exam scores unavailable", { code: attemptsResult.error.code });
   if (activeResult.error) logger.warn("Learner active examination unavailable", { code: activeResult.error.code });
   if (documentsResult.error) logger.warn("Learner recent materials unavailable", { code: documentsResult.error.code });
   if (quizzesResult.error) logger.warn("Learner recent quizzes unavailable", { code: quizzesResult.error.code });
 
-  const recentAttempts = attemptsResult.error
-    ? []
+  const parsedAttempts = attemptsResult.error
+    ? null
     : checkedRows("quiz_attempts", attemptsResult.data, attemptSchema);
-  const activeAttempts = activeResult.error
-    ? []
+  const parsedActiveAttempts = activeResult.error
+    ? null
     : checkedRows("quiz_attempts", activeResult.data, activeAttemptSchema);
-  const active = activeAttempts[0];
+  const parsedDocuments = documentsResult.error
+    ? null
+    : checkedRows("learning_documents", documentsResult.data, documentSchema);
+  const parsedQuizzes = quizzesResult.error
+    ? null
+    : checkedRows("learning_quizzes", quizzesResult.data, quizSchema);
+  const recentAttempts = parsedAttempts ?? [];
+  const active = parsedActiveAttempts?.[0];
   let activeAttempt: DashboardOverview["activeAttempt"] = null;
   if (active) {
     const { data: quiz, error } = await supabase
@@ -109,21 +119,18 @@ export async function loadDashboardOverview(
     materialCount: materialCountResult.error ? null : materialCountResult.count,
     analyzedMaterialCount: analyzedCountResult.error ? null : analyzedCountResult.count,
     quizCount: quizCountResult.error ? null : quizCountResult.count,
+    readyQuizCount: readyQuizCountResult.error ? null : readyQuizCountResult.count,
     completedExamCount: examCountResult.error ? null : examCountResult.count,
     recentAverage: recentAttempts.length
       ? Math.round(recentAttempts.reduce((sum, attempt) => sum + attempt.percentage, 0) / recentAttempts.length)
       : null,
-    attemptsAvailable: !attemptsResult.error,
-    activeAttemptAvailable: !activeResult.error,
-    documentsAvailable: !documentsResult.error,
-    quizzesAvailable: !quizzesResult.error,
+    attemptsAvailable: parsedAttempts !== null,
+    activeAttemptAvailable: parsedActiveAttempts !== null,
+    documentsAvailable: parsedDocuments !== null,
+    quizzesAvailable: parsedQuizzes !== null,
     recentAttempts,
-    recentDocuments: documentsResult.error
-      ? []
-      : checkedRows("learning_documents", documentsResult.data, documentSchema),
-    recentQuizzes: quizzesResult.error
-      ? []
-      : checkedRows("learning_quizzes", quizzesResult.data, quizSchema),
+    recentDocuments: parsedDocuments ?? [],
+    recentQuizzes: parsedQuizzes ?? [],
     activeAttempt,
   };
 }

@@ -34,8 +34,7 @@ export function GamificationDashboard({
           Achievements
         </h2>
         <p className="mt-1 text-sm leading-6 text-[#77758A]">
-          Earn experience points by completing exams, scoring highly, keeping a study streak,
-          and reaching milestones. Streak days use UTC.
+          Your learning progress, experience points and recent achievements.
         </p>
       </div>
 
@@ -104,7 +103,9 @@ export function GamificationDashboard({
         </Card>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <details className="dashboard-gamification-details mt-4">
+        <summary>View streak history, milestones and all badges</summary>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
           <h3 className="text-lg font-bold text-[#35216B]">Your study streak</h3>
           <p className="mt-1 text-sm text-[#77758A]">
@@ -182,7 +183,7 @@ export function GamificationDashboard({
         </Card>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
           <h3 className="text-lg font-bold text-[#35216B]">Badges and achievements</h3>
           {earnedBadges.length === 0 && (
@@ -258,7 +259,8 @@ export function GamificationDashboard({
             </p>
           )}
         </Card>
-      </div>
+        </div>
+      </details>
     </section>
   );
 }
