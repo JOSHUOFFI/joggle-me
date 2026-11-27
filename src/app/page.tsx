@@ -65,7 +65,7 @@ const previewCards = [
 
 export default function Home() {
   return (
-    <main id="home" data-landing-page className="landing-page min-h-screen overflow-hidden bg-[var(--lm-background)] text-[var(--lm-foreground)]">
+    <main id="home" data-landing-page className="landing-page min-h-screen overflow-x-clip bg-[var(--lm-background)] text-[var(--lm-foreground)]">
       <LandingHeader />
 
       <section className="landing-hero relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-14 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:min-h-[600px] lg:grid-cols-[1.06fr_.94fr] lg:gap-8 lg:py-14">

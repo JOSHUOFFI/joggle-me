@@ -40,6 +40,15 @@ export function LandingHeader() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
+
   function toggleTheme() {
     const nextDark = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", nextDark);
@@ -63,7 +72,7 @@ export function LandingHeader() {
           <Logo variant="responsive" tone="auto" priority />
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
+        <nav className="hidden items-center gap-4 lg:flex xl:gap-6" aria-label="Main navigation">
           {navigation.map(({ label, href, section }) => (
             <Link key={label} href={href} aria-current={activeSection === section ? "location" : undefined} className={`landing-nav-link ${activeSection === section ? "is-active" : ""}`}>
               {label}
@@ -75,14 +84,14 @@ export function LandingHeader() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="landing-theme-button hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--lm-border)] sm:inline-flex"
+            className="landing-theme-button hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--lm-border)] lg:inline-flex"
             aria-label="Toggle color theme"
             title="Toggle color theme"
           >
             <ThemeIcons />
           </button>
-          <Link href="/login" className="landing-login hidden h-10 items-center justify-center rounded-full border border-[var(--lm-border)] px-5 text-sm font-semibold sm:inline-flex">Log in</Link>
-          <Link href="/register" className="landing-primary-button hidden h-10 items-center justify-center rounded-full px-5 text-sm font-semibold sm:inline-flex">Get Started <span aria-hidden="true" className="ml-2">→</span></Link>
+          <Link href="/login" className="landing-login hidden h-10 items-center justify-center rounded-full border border-[var(--lm-border)] px-4 text-sm font-semibold lg:inline-flex xl:px-5">Log in</Link>
+          <Link href="/register" className="landing-primary-button hidden h-10 items-center justify-center rounded-full px-5 text-sm font-semibold lg:inline-flex">Get Started <span aria-hidden="true" className="ml-2">→</span></Link>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}

@@ -58,12 +58,36 @@ test("mobile navigation is usable without horizontal overflow", async ({ page })
   await page.getByRole("button", { name: "Open navigation menu" }).click();
   const menu = page.getByRole("navigation", { name: "Mobile navigation" });
   await expect(menu.getByRole("link", { name: "How It Works" })).toBeVisible();
-  await menu.getByRole("link", { name: "Features" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  const reopenedMenu = page.getByRole("navigation", { name: "Mobile navigation" });
+  await reopenedMenu.getByRole("link", { name: "Features" }).click();
   await expect(page).toHaveURL(/#features$/);
   await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeVisible();
 
-  const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
-  expect(hasOverflow).toBe(false);
+  for (const width of [390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    expect(hasOverflow, `no horizontal overflow at ${width}px`).toBe(false);
+  }
+});
+
+test("landing navbar sticks, adopts its glass state, and tracks the active section", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const header = page.locator("header.landing-header");
+  await expect(header).toHaveCSS("position", "sticky");
+  await expect(header).not.toHaveClass(/is-scrolled/);
+
+  await page.evaluate(() => window.scrollTo(0, 700));
+  await expect(header).toHaveClass(/is-scrolled/);
+  await expect(header).toHaveCSS("top", "0px");
+  await expect.poll(() => header.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(0);
+  await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Features" })).toHaveAttribute("aria-current", "location");
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(header).not.toHaveClass(/is-scrolled/);
 });
 
 test("community and dashboard calls to action use the existing protected platform routes", async ({ page }) => {
