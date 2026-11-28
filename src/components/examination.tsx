@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
+import { CircleAlert, CircleCheck, Clock, LoaderCircle, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -314,72 +315,74 @@ export function Examination({
     remainingMs === null ? "--:--" : displayTime(remainingMs);
 
   return (
-    <div>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <div className="experience-page exam-experience">
+      <header className="exam-header">
         <div>
-          <p className="text-sm font-bold text-[#7655D9]">Examination in progress</p>
-          <h1 className="mt-1 break-words text-2xl font-black text-[#17152A] sm:text-3xl">
+          <p className="experience-kicker">Examination in progress</p>
+          <h1 className="exam-title">
             {quizTitle}
           </h1>
-          <p className="mt-1 text-sm text-[#77758A]">Source: {sourceFilename}</p>
+          <p className="exam-source">Source: {sourceFilename}</p>
         </div>
         <div
-          className="rounded-xl border border-[#DDD8EF] bg-white px-4 py-3 text-center"
-          aria-live="polite"
+          className={`exam-timer-card${remainingMs !== null && remainingMs < 60_000 ? " is-urgent" : ""}`}
+          role="timer"
           aria-label={`Time remaining ${remainingLabel}`}
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#77758A]">
+          <p className="exam-timer-label flex items-center gap-2">
+            <Clock size={15} aria-hidden="true" />
             Time remaining
           </p>
-          <p className={`mt-1 font-mono text-2xl font-black ${remainingMs !== null && remainingMs < 60_000 ? "text-red-700" : "text-[#35216B]"}`}>
+          <p className="exam-timer-value">
             {remainingLabel}
           </p>
         </div>
-      </div>
+      </header>
 
-      <Card className="mb-5 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <p className="font-semibold text-[#35216B]">
+      <Card className="experience-card exam-progress-card p-4 sm:p-5">
+        <div className="exam-progress-copy">
+          <p className="font-semibold">
             {answeredCount} of {questions.length} answered
           </p>
-          <p className="text-[#77758A]" aria-live="polite">
-            {saveStatus === "saved" && "All answers saved"}
-            {saveStatus === "saving" && "Saving answers…"}
-            {saveStatus === "offline" && "Saved on this device"}
-            {saveStatus === "error" && "Save will retry"}
+          <p className="exam-save-state" aria-live="polite">
+            {saveStatus === "saved" && <><CircleCheck size={16} aria-hidden="true" /> All answers saved</>}
+            {saveStatus === "saving" && <><LoaderCircle className="animate-spin" size={16} aria-hidden="true" /> Saving answers…</>}
+            {saveStatus === "offline" && <><WifiOff size={16} aria-hidden="true" /> Saved on this device</>}
+            {saveStatus === "error" && <><CircleAlert size={16} aria-hidden="true" /> Save will retry</>}
           </p>
         </div>
         <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-[#ECEAF5]"
+          className="exam-progress-track mt-3"
           role="progressbar"
           aria-label="Examination progress"
           aria-valuemin={0}
           aria-valuemax={questions.length}
           aria-valuenow={answeredCount}
+          aria-valuetext={`${answeredCount} of ${questions.length} answered`}
         >
           <div
-            className="h-full rounded-full bg-[#7655D9] transition-[width]"
+            className="exam-progress-fill"
             style={{ width: `${(answeredCount / questions.length) * 100}%` }}
           />
         </div>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_15rem]">
-        <Card className="p-5 sm:p-7">
+      <div className="exam-question-layout">
+        <Card className="experience-card exam-question-card">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-bold text-[#7655D9]">
+            <p className="experience-kicker">
               Question {currentIndex + 1} of {questions.length}
             </p>
-            <span className="rounded-full bg-[#F0ECFB] px-3 py-1 text-xs font-semibold capitalize text-[#35216B]">
+            <span className="quiz-count-pill capitalize">
               {currentQuestion.difficulty}
             </span>
           </div>
-          <h2 className="mt-4 text-lg font-bold leading-7 text-[#35216B] sm:text-xl">
+          <h2 className="exam-question-heading">
             {currentQuestion.question}
           </h2>
-          <p className="mt-2 text-sm text-[#77758A]">Topic: {currentQuestion.topic}</p>
+          <p className="exam-topic-label">Topic: {currentQuestion.topic}</p>
 
-          <fieldset className="mt-6 grid gap-3">
+          <fieldset className="exam-option-list">
             <legend className="sr-only">Choose one answer</legend>
             {currentQuestion.options
               .slice()
@@ -393,22 +396,16 @@ export function Examination({
                     aria-pressed={selected}
                     onClick={() => chooseAnswer(option.label)}
                     disabled={submitting || remainingMs === 0}
-                    className={`flex min-h-14 items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7655D9]/20 ${
-                      selected
-                        ? "border-[#7655D9] bg-[#F0ECFB] text-[#35216B]"
-                        : "border-[#ECEAF5] bg-white text-[#4E4B60] hover:border-[#BFB4E5]"
-                    }`}
+                    className={`exam-option${selected ? " is-selected" : ""}`}
                   >
-                    <span className="mt-0.5 font-bold text-[#7655D9]">
-                      {option.label}.
-                    </span>
-                    <span>{option.text}</span>
+                    <span className="exam-option-label">{option.label}</span>
+                    <span className="min-w-0">{option.text}</span>
                   </button>
                 );
               })}
           </fieldset>
 
-          <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
+          <div className="exam-question-actions">
             <Button
               type="button"
               variant="secondary"
@@ -439,12 +436,13 @@ export function Examination({
           </div>
         </Card>
 
-        <Card className="p-4 sm:p-5">
-          <h2 className="font-bold text-[#35216B]">Question navigator</h2>
-          <p className="mt-1 text-xs text-[#77758A]">
+        <Card className="experience-card exam-navigator-card p-4 sm:p-5">
+          <nav aria-label="Question navigator">
+          <h2 className="exam-nav-title">Question navigator</h2>
+          <p className="exam-nav-description">
             Filled numbers are answered; outlined numbers are unanswered.
           </p>
-          <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-6 lg:grid-cols-4">
+          <div className="exam-number-grid">
             {questions.map((question, index) => {
               const isAnswered = answers[index] !== null;
               const isCurrent = currentIndex === index;
@@ -456,47 +454,42 @@ export function Examination({
                   aria-current={isCurrent ? "step" : undefined}
                   onClick={() => setCurrentIndex(index)}
                   disabled={submitting || remainingMs === 0}
-                  className={`min-h-11 rounded-lg border text-sm font-bold ${
-                    isCurrent
-                      ? "border-[#35216B] bg-[#35216B] text-white"
-                      : isAnswered
-                        ? "border-[#7655D9] bg-[#F0ECFB] text-[#35216B]"
-                        : "border-[#DDD8EF] bg-white text-[#77758A]"
-                  }`}
+                  className={`exam-question-number${isCurrent ? " is-current" : isAnswered ? " is-answered" : ""}`}
                 >
                   {index + 1}
                 </button>
               );
             })}
           </div>
-          <div className="mt-5 grid gap-2 text-sm">
-            <p><span className="font-bold text-[#35216B]">{answeredCount}</span> answered</p>
-            <p><span className="font-bold text-[#77758A]">{unansweredCount}</span> unanswered</p>
+          <div className="exam-navigator-stats">
+            <p><strong>{answeredCount}</strong> answered</p>
+            <p><strong>{unansweredCount}</strong> unanswered</p>
           </div>
           <Button
             type="button"
-            className="mt-5 w-full"
+            className="exam-navigator-submit"
             onClick={() => setConfirming(true)}
             disabled={submitting || remainingMs === 0}
           >
             Submit examination
           </Button>
+          </nav>
         </Card>
       </div>
 
       {message && (
-        <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+        <p className="exam-status-alert" role="status">
           {message}
         </p>
       )}
 
       {confirming && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#17152A]/60 p-4"
+          className="exam-dialog-backdrop"
           role="presentation"
         >
           <Card
-            className="w-full max-w-md p-6"
+            className="experience-card exam-dialog p-6"
             role="dialog"
             aria-modal="true"
             aria-labelledby="submit-confirmation-heading"

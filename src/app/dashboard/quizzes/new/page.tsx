@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, BookOpenCheck, FileText, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { QuizConfiguration } from "@/components/quiz-configuration";
@@ -36,62 +37,74 @@ export default async function NewQuizPage({
 
     return (
       <AppShell>
-        <div className="mb-6">
-          <p className="text-sm font-bold text-[#7655D9]">Quiz setup</p>
-          <h1 className="mt-1 text-3xl font-black text-[#17152A]">Generate Quiz</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#77758A]">
-            Choose an analysed learning material to build a quiz from.
-          </p>
-        </div>
+        <section className="experience-page quiz-experience">
+          <header className="experience-page-header">
+            <span className="experience-mark"><Sparkles size={22} aria-hidden="true" /></span>
+            <div>
+              <p className="experience-kicker">AI quiz generator · Step 1 of 2</p>
+              <h1 className="experience-title">Choose your study material</h1>
+              <p className="experience-description">
+                Start with an analysed document. You can choose the topics and quiz format next.
+              </p>
+            </div>
+          </header>
         {!quizEnabled ? (
-          <Card className="p-6 text-sm leading-6 text-[#4E4B60]" role="status">
+          <Card className="experience-card p-6 text-sm leading-6 text-[#4E4B60]" role="status">
             AI quiz generation is currently disabled. Ask the platform owner to enable it.
           </Card>
         ) : !analysisEnabled || !uploadsEnabled ? (
-          <Card className="p-6 text-sm leading-6 text-[#4E4B60]" role="status">
+          <Card className="experience-card p-6 text-sm leading-6 text-[#4E4B60]" role="status">
             Learning material analysis is currently disabled.
           </Card>
         ) : error ? (
-          <Card className="p-6 text-sm leading-6 text-red-700" role="alert">
+          <Card className="experience-card p-6 text-sm leading-6 text-red-700" role="alert">
             Your analysed learning materials could not be loaded. Please refresh and try again.
           </Card>
         ) : availableDocuments.length ? (
-          <div className="grid gap-3">
+          <section aria-label="Analysed learning materials" className="grid gap-3">
             {availableDocuments.map((document) => {
               const analysis = documentAnalysisSchema.parse(document.analysis);
               return (
-                <Card key={document.id} className="flex flex-wrap items-center justify-between gap-4 p-5">
-                  <div>
-                    <h2 className="font-bold text-[#35216B]">
-                      {analysis.title || document.original_filename}
-                    </h2>
-                    <p className="mt-1 text-sm text-[#77758A]">
-                      {analysis.topics.length} analysed {analysis.topics.length === 1 ? "topic" : "topics"}
-                    </p>
+                <Card key={document.id} className="experience-card quiz-document-card">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <span className="quiz-document-icon"><FileText size={21} aria-hidden="true" /></span>
+                    <div className="min-w-0">
+                      <h2 className="break-words text-base font-bold text-[#35216B]">
+                        {analysis.title || document.original_filename}
+                      </h2>
+                      <p className="mt-1 text-sm text-[#77758A]">
+                        {analysis.topics.length} analysed {analysis.topics.length === 1 ? "topic" : "topics"}
+                        <span className="mx-2" aria-hidden="true">·</span>
+                        <span className="break-all">{document.original_filename}</span>
+                      </p>
+                    </div>
                   </div>
                   <Link
                     href={`/dashboard/quizzes/new?documentId=${document.id}`}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#7655D9] px-4 text-sm font-semibold text-white hover:bg-[#6041C1]"
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#7655D9] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#6041C1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7655D9]/25"
                   >
-                    Use this material
+                    Configure quiz <ArrowRight size={16} aria-hidden="true" />
                   </Link>
                 </Card>
               );
             })}
-          </div>
+          </section>
         ) : (
-          <Card className="p-6">
-            <p className="text-sm leading-6 text-[#4E4B60]" role="status">
-              No analysed learning materials are ready for quiz generation yet. Upload a material and wait for its analysis to complete.
+          <Card className="experience-card p-6 sm:p-7">
+            <span className="quiz-document-icon"><BookOpenCheck size={22} aria-hidden="true" /></span>
+            <h2 className="mt-4 text-lg font-bold text-[#35216B]">No ready materials yet</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#4E4B60]" role="status">
+              Analysed learning materials will appear here when they are ready. Upload a study document to get started.
             </p>
             <Link
               href="/dashboard/materials"
-              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#7655D9] px-4 text-sm font-semibold text-white hover:bg-[#6041C1]"
+              className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#7655D9] px-4 text-sm font-semibold text-white hover:bg-[#6041C1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7655D9]/25"
             >
-              Go to Learning Materials
+              <FileText size={16} aria-hidden="true" /> Go to Learning Materials
             </Link>
           </Card>
         )}
+        </section>
       </AppShell>
     );
   }
@@ -124,16 +137,23 @@ export default async function NewQuizPage({
 
   return (
     <AppShell>
+      <section className="experience-page quiz-experience">
       <Link
         href={`/dashboard/materials/${document.id}`}
-        className="text-sm font-bold text-[#7655D9] hover:underline"
+        className="experience-back-link"
       >
         ← Back to document analysis
       </Link>
-      <div className="mb-6 mt-5">
-        <p className="text-sm font-bold text-[#7655D9]">Quiz setup</p>
-        <h1 className="mt-1 text-3xl font-black text-[#17152A]">Generate Quiz</h1>
-      </div>
+      <header className="experience-page-header mt-3">
+        <span className="experience-mark"><Sparkles size={22} aria-hidden="true" /></span>
+        <div>
+          <p className="experience-kicker">AI quiz generator · Step 2 of 2</p>
+          <h1 className="experience-title">Configure your quiz</h1>
+          <p className="experience-description">
+            Choose the topics and format that fit your next study session.
+          </p>
+        </div>
+      </header>
       {canGenerate && analysis.success ? (
         <QuizConfiguration
           documentId={document.id}
@@ -141,7 +161,7 @@ export default async function NewQuizPage({
           topics={topics}
         />
       ) : (
-        <Card className="p-6">
+        <Card className="experience-card p-6">
           <p className="text-sm leading-6 text-[#4E4B60]" role="status">
             {!quizEnabled
               ? "AI quiz generation is currently disabled. Ask the platform owner to enable it."
@@ -151,6 +171,7 @@ export default async function NewQuizPage({
           </p>
         </Card>
       )}
+      </section>
     </AppShell>
   );
 }

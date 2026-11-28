@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CalendarDays, Check, Clock, Minus, Sparkles, Trophy, X } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
@@ -238,89 +239,97 @@ export default async function ExaminationResultsPage({
 
   return (
     <AppShell>
+      <section className="experience-page results-experience">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href={`/dashboard/quizzes/${quiz.id}`}
-          className="text-sm font-bold text-[#7655D9] hover:underline"
+          className="experience-back-link"
         >
           ← Back to quiz
         </Link>
         <Link
           href="/dashboard/performance"
-          className="text-sm font-bold text-[#7655D9] hover:underline"
+          className="experience-back-link"
         >
           My Performance
         </Link>
       </div>
-      <div className="mb-6 mt-5">
-        <p className="text-sm font-bold text-[#7655D9]">Examination results</p>
-        <h1 className="mt-1 break-words text-3xl font-black text-[#17152A]">
+      <header className="results-header">
+        <div>
+        <p className="experience-kicker">Examination results</p>
+        <h1 className="experience-title">
           {quiz.title}
         </h1>
-        <p className="mt-2 text-sm text-[#77758A]">
+        <p className="experience-description">
           {subject} · Source document: {document?.original_filename ?? "Learning material"}
         </p>
-      </div>
+        </div>
+        <span className="results-classification"><Sparkles size={15} aria-hidden="true" /> Saved result</span>
+      </header>
 
-      <Card className="mb-6 p-5 sm:p-7">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <p className="text-sm text-[#77758A]">Total score</p>
-            <p className="mt-1 text-3xl font-black text-[#35216B]">
-              {attempt.total_score ?? correctCount} / {attempt.question_count}
-            </p>
+      <Card className="experience-card results-scorecard mb-6 p-5 sm:p-7">
+        <div className="results-score-overview">
+          <div
+            className="results-score-ring"
+            role="img"
+            aria-label={`Overall score: ${percentage} percent`}
+            style={{ background: `conic-gradient(var(--learner-accent) ${percentage}%, var(--learner-border) 0)` }}
+          >
+            <div className="results-score-ring-inner">
+              <span className="results-score-number">{percentage}%</span>
+              <span className="results-score-caption">Overall</span>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-[#77758A]">Percentage</p>
-            <p className="mt-1 text-3xl font-black text-[#35216B]">{percentage}%</p>
-            <p className="mt-1 text-sm font-semibold text-[#35216B]">
-              {getPerformanceClassification(percentage)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-[#77758A]">Total questions</p>
-            <p className="mt-1 text-2xl font-black text-[#35216B]">{attempt.question_count}</p>
-          </div>
-          <div>
-            <p className="text-sm text-[#77758A]">Date completed</p>
-            <p className="mt-1 font-semibold text-[#35216B]">{completedDate}</p>
-          </div>
-          <div>
-            <p className="text-sm text-[#77758A]">Time taken</p>
-            <p className="mt-1 font-semibold text-[#35216B]">{timeTaken}</p>
-          </div>
-          <div>
-            <p className="text-sm text-[#77758A]">Submission</p>
-            <p className="mt-1 font-semibold capitalize text-[#35216B]">
-              {attempt.submission_reason === "timeout"
-                ? "Automatically submitted at the deadline"
-                : "Submitted"}
+          <div className="results-score-summary">
+            <span className="results-classification"><Trophy size={15} aria-hidden="true" /> {getPerformanceClassification(percentage)}</span>
+            <p className="results-remark">{getPerformanceRemark(percentage)}</p>
+            <p className="results-total">
+              Total score: {attempt.total_score ?? correctCount} of {attempt.question_count} questions
             </p>
           </div>
         </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-            <span className="font-bold">{correctCount}</span> correct
-          </p>
-          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-900">
-            <span className="font-bold">{incorrectCount}</span> incorrect
-          </p>
-          <p className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-800">
-            <span className="font-bold">{unansweredCount}</span> unanswered
-          </p>
+
+        <div className="results-breakdown">
+          <div
+            className="results-breakdown-bar"
+            role="img"
+            aria-label={`Answer breakdown: ${correctCount} correct, ${incorrectCount} incorrect, ${unansweredCount} unanswered`}
+          >
+            <span className="results-breakdown-segment correct" style={{ width: `${(correctCount / attempt.question_count) * 100}%` }} />
+            <span className="results-breakdown-segment incorrect" style={{ width: `${(incorrectCount / attempt.question_count) * 100}%` }} />
+            <span className="results-breakdown-segment unanswered" style={{ width: `${(unansweredCount / attempt.question_count) * 100}%` }} />
+          </div>
+          <div className="results-stat-grid" role="group" aria-label="Answer statistics">
+            <div className="results-stat correct">
+              <span className="results-stat-icon"><Check size={19} aria-hidden="true" /></span>
+              <span><span className="results-stat-value block">{correctCount}</span><span className="results-stat-label block">Correct</span></span>
+            </div>
+            <div className="results-stat incorrect">
+              <span className="results-stat-icon"><X size={19} aria-hidden="true" /></span>
+              <span><span className="results-stat-value block">{incorrectCount}</span><span className="results-stat-label block">Incorrect</span></span>
+            </div>
+            <div className="results-stat unanswered">
+              <span className="results-stat-icon"><Minus size={19} aria-hidden="true" /></span>
+              <span><span className="results-stat-value block">{unansweredCount}</span><span className="results-stat-label block">Unanswered</span></span>
+            </div>
+          </div>
         </div>
-        <p className="mt-5 rounded-xl bg-[#F7F7FC] p-4 text-sm leading-6 text-[#4E4B60]">
-          {getPerformanceRemark(percentage)}
-        </p>
+
+        <dl className="results-meta-grid">
+          <div><dt className="results-meta-label">Questions</dt><dd className="results-meta-value">{attempt.question_count}</dd></div>
+          <div><dt className="results-meta-label">Completed</dt><dd className="results-meta-value flex items-start gap-2"><CalendarDays className="mt-0.5 shrink-0" size={16} aria-hidden="true" />{completedDate}</dd></div>
+          <div><dt className="results-meta-label">Time taken</dt><dd className="results-meta-value flex items-center gap-2"><Clock size={16} aria-hidden="true" />{timeTaken}</dd></div>
+          <div><dt className="results-meta-label">Submission</dt><dd className="results-meta-value">{attempt.submission_reason === "timeout" ? "Automatically submitted" : "Submitted"}</dd></div>
+        </dl>
       </Card>
 
       {rewardDataUnavailable ? (
-        <Card className="mb-6 p-4 text-sm text-amber-900" role="status">
+      <Card className="experience-card mb-6 p-4 text-sm text-amber-900" role="status">
           Your examination result is saved. Reward details are temporarily unavailable;
           check Achievements on your dashboard later.
         </Card>
       ) : (xpEarned > 0 || unlockedBadgeTitles.length > 0) ? (
-        <Card className="mb-6 border border-emerald-200 bg-emerald-50 p-4" role="status">
+        <Card className="experience-card mb-6 border border-emerald-200 bg-emerald-50 p-4" role="status">
           <p className="font-bold text-emerald-900">
             {xpEarned > 0
               ? `You earned ${xpEarned} XP from this examination.`
@@ -337,7 +346,7 @@ export default async function ExaminationResultsPage({
 
       <section aria-labelledby="result-topics-heading" className="mb-8">
         <div className="mb-4">
-          <h2 id="result-topics-heading" className="text-2xl font-black text-[#35216B]">
+          <h2 id="result-topics-heading" className="results-section-heading">
             Topic performance
           </h2>
           <p className="mt-1 text-sm text-[#77758A]">
@@ -346,14 +355,14 @@ export default async function ExaminationResultsPage({
           </p>
         </div>
         {!reviewIsConsistent ? (
-          <Card className="p-5 text-sm text-amber-900" role="status">
+          <Card className="experience-card p-5 text-sm text-amber-900" role="status">
             Topic analysis is unavailable because the saved question review does not match
             the final score. Your stored examination result has not been changed.
           </Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {topicPerformance.map((topic) => (
-              <Card key={topic.name} className="p-4">
+              <Card key={topic.name} className="experience-card results-topic-card p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <h3 className="font-bold text-[#35216B]">{topic.name}</h3>
                   <span className="rounded-full bg-[#F0ECFB] px-3 py-1 text-xs font-semibold text-[#35216B]">
@@ -385,14 +394,14 @@ export default async function ExaminationResultsPage({
       )}
 
       <div className="mb-4">
-        <h2 className="text-2xl font-black text-[#35216B]">Question review</h2>
+        <h2 className="results-section-heading">Question review</h2>
         <p className="mt-1 text-sm text-[#77758A]">
           Review your selected answers, correct answers, explanations, and source sections.
         </p>
       </div>
       <div className="space-y-4">
         {!reviewIsConsistent ? (
-          <Card className="p-5 text-sm text-amber-900" role="status">
+          <Card className="experience-card p-5 text-sm text-amber-900" role="status">
             Question-by-question review is unavailable because it does not match the final
             score. The stored result remains unchanged.
           </Card>
@@ -407,18 +416,19 @@ export default async function ExaminationResultsPage({
           const isCorrect = question.outcome === "correct";
 
           return (
-            <Card key={`${question.index}-${question.question}`} className="p-5 sm:p-6">
+            <Card key={`${question.index}-${question.question}`} className="experience-card results-review-card p-5 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <h3 className="font-bold leading-6 text-[#35216B]">
                   {question.index + 1}. {question.question}
                 </h3>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                <span className={`results-outcome-badge ${
                   isCorrect
-                    ? "bg-emerald-50 text-emerald-800"
+                    ? "correct"
                     : selectedAnswer === null
-                      ? "bg-slate-100 text-slate-700"
-                      : "bg-red-50 text-red-800"
+                      ? "unanswered"
+                      : "incorrect"
                 }`}>
+                  {isCorrect ? <Check size={14} aria-hidden="true" /> : selectedAnswer === null ? <Minus size={14} aria-hidden="true" /> : <X size={14} aria-hidden="true" />}
                   {isCorrect ? "Correct" : selectedAnswer === null ? "Unanswered" : "Incorrect"}
                 </span>
               </div>
@@ -432,12 +442,12 @@ export default async function ExaminationResultsPage({
                   .map((option) => (
                     <li
                       key={option.label}
-                      className={`rounded-xl border px-4 py-3 text-sm ${
+                      className={`results-option${
                         option.label === question.correctAnswer
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                          ? " correct"
                           : option.label === selectedAnswer
-                            ? "border-red-300 bg-red-50 text-red-900"
-                            : "border-[#ECEAF5] text-[#4E4B60]"
+                            ? " incorrect"
+                            : ""
                       }`}
                     >
                       <span className="mr-2 font-bold">{option.label}.</span>
@@ -464,7 +474,7 @@ export default async function ExaminationResultsPage({
                 ? `No answer was selected. The correct answer is ${correctOption?.label ?? "unavailable"}.`
                 : `Your selected answer ${selectedOption?.label ?? selectedAnswer} is incorrect. The correct answer is ${correctOption?.label ?? "unavailable"}.`}
               </p>
-              <p className="mt-4 text-sm leading-6 text-[#4E4B60]">
+              <p className="results-feedback">
                 <span className="font-bold text-[#35216B]">Explanation:</span>{" "}
                 {question.explanation}
               </p>
@@ -487,10 +497,11 @@ export default async function ExaminationResultsPage({
       </div>
       <Link
         href={`/dashboard/quizzes/${quiz.id}/exam`}
-        className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl border border-[#DDD8EF] bg-white px-4 text-sm font-semibold text-[#35216B] hover:bg-[#F7F7FC]"
+        className="results-take-another mt-6"
       >
         Take another attempt
       </Link>
+      </section>
     </AppShell>
   );
 }
