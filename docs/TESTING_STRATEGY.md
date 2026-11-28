@@ -1,5 +1,11 @@
 # Testing Strategy
 
+> This strategy predates account removal. Registration, login, profile-account,
+> owner authorization, Auth sessions, and Auth-backed RLS tests are obsolete.
+> Replace them with guest capability validation, workspace ownership and
+> cross-workspace isolation tests. Those browser isolation tests remain
+> outstanding; see [the decommission report](./AUTH_DECOMMISSION_REPORT.md).
+
 ## 1. Test levels
 
 ### Unit tests: Vitest
@@ -21,9 +27,8 @@ No unit test should require production credentials or networks.
 
 Use controlled local or test Supabase services:
 
-- Authentication sessions
-- RLS isolation
-- Profile and document repository behavior
+- Guest workspace capability and isolation
+- Workspace-scoped document repository behavior
 - Job state transitions
 - Storage signed URLs
 - Provider adapter contract with fixtures
@@ -40,12 +45,12 @@ Use controlled local or test Supabase services:
 
 Run critical journeys in Chromium and responsive viewports:
 
-- Registration/login/profile
+- Anonymous workspace creation and capability retention
 - Upload/status/reprocess
 - Quiz configuration/generation
 - Start/answer/autosave/recovery/submit
 - Results/history
-- Owner authorization and audit
+- Guest workspace limits and cross-workspace denial
 
 Test desktop, tablet, and mobile viewports. Default browsers begin with Chromium; cross-browser expansion is required before launch.
 

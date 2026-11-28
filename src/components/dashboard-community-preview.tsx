@@ -1,25 +1,27 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import type { requireAuthenticatedUser } from "@/lib/auth";
+import type { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityFeatures,
   loadCommunityFeed,
 } from "@/lib/community/data";
 
-type Supabase = Awaited<ReturnType<typeof requireAuthenticatedUser>>["supabase"];
+type Supabase = Awaited<ReturnType<typeof requireGuestWorkspace>>["supabase"];
 
 export async function DashboardCommunityPreview({
   supabase,
   userId,
+  guestTokenHash,
 }: {
   supabase: Supabase;
   userId: string;
+  guestTokenHash: string;
 }) {
   let features: Awaited<ReturnType<typeof loadCommunityFeatures>>;
   try {
-    features = await loadCommunityFeatures(supabase);
+    features = await loadCommunityFeatures();
   } catch (error) {
     if (!(error instanceof CommunityDataError)) throw error;
     return null;
@@ -40,17 +42,29 @@ export async function DashboardCommunityPreview({
           <p className="dashboard-muted text-sm">Community discussions are not available right now.</p>
         </Card>
       ) : (
-        <CommunityPosts supabase={supabase} userId={userId} />
+        <CommunityPosts
+          supabase={supabase}
+          userId={userId}
+          guestTokenHash={guestTokenHash}
+        />
       )}
     </section>
   );
 }
 
-async function CommunityPosts({ supabase, userId }: { supabase: Supabase; userId: string }) {
+async function CommunityPosts({
+  supabase,
+  userId,
+  guestTokenHash,
+}: {
+  supabase: Supabase;
+  userId: string;
+  guestTokenHash: string;
+}) {
   let posts: Awaited<ReturnType<typeof loadCommunityFeed>>["posts"] = [];
   let unavailable = false;
   try {
-    const feed = await loadCommunityFeed(supabase, userId, 1);
+    const feed = await loadCommunityFeed(supabase, userId, guestTokenHash, 1);
     posts = feed.posts.slice(0, 2);
   } catch (error) {
     if (!(error instanceof CommunityDataError)) throw error;

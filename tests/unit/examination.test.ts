@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   attemptAnswersSchema,
   examQuestionViewsSchema,
+  parseAttemptRpcResult,
   quizAttemptStateSchema,
 } from "@/lib/exams/types";
 import { getPerformanceRemark } from "@/lib/exams/results";
@@ -40,6 +41,11 @@ const activeAttempt = {
 };
 
 describe("examination contracts", () => {
+  it("parses the complete row returned by the guest start RPC", () => {
+    expect(parseAttemptRpcResult([activeAttempt])).toEqual(activeAttempt);
+    expect(parseAttemptRpcResult("30000000-0000-4000-8000-000000000051")).toBeNull();
+  });
+
   it("strips answer keys and explanations from examination question views", () => {
     const [question] = examQuestionViewsSchema.parse(questionSet);
     expect(question.question).toBe(questionSet[0].question);

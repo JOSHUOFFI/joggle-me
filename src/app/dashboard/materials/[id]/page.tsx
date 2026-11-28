@@ -6,7 +6,7 @@ import { ProcessingRefresh } from "@/components/learning-materials";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { retryLearningDocumentAction } from "@/lib/actions/materials";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { documentAnalysisSchema } from "@/lib/materials/types";
 import { isFeatureEnabled } from "@/lib/features";
 
@@ -43,7 +43,7 @@ export default async function DocumentAnalysisPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { supabase } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const { id } = await params;
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
@@ -54,6 +54,7 @@ export default async function DocumentAnalysisPage({
       "id,original_filename,file_type,status,extraction_status,analysis_status,analysis,analysis_model,created_at,error_message",
     )
     .eq("id", parsedId.data)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (documentError) {
     return (
@@ -70,6 +71,7 @@ export default async function DocumentAnalysisPage({
     .from("document_sections")
     .select("source_id,title,page_or_location")
     .eq("document_id", parsedId.data)
+    .eq("user_id", user.id)
     .order("position");
   if (sectionsError) {
     return (

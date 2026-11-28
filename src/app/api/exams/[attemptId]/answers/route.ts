@@ -42,8 +42,9 @@ export async function POST(
   }
 
   const { data, error } = await learner.supabase.rpc(
-    "save_quiz_attempt_answers",
+    "guest_save_quiz_attempt_answers",
     {
+      p_token_hash: learner.user.guestTokenHash,
       p_attempt_id: parsedAttemptId.data,
       p_answers: parsedBody.data.answers,
     },

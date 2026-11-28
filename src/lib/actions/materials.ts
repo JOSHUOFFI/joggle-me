@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { isFeatureEnabled } from "@/lib/features";
 import { logger } from "@/lib/logger";
@@ -17,7 +17,7 @@ export async function retryLearningDocumentAction(formData: FormData) {
   const documentId = documentIdSchema.safeParse(formData.get("documentId"));
   if (!documentId.success) redirect("/dashboard/materials?materials_error=invalid");
 
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const uploadsEnabled = await isFeatureEnabled(
     supabase,
     "learning_material_uploads",
@@ -31,8 +31,11 @@ export async function retryLearningDocumentAction(formData: FormData) {
   }
 
   const { data: queued, error } = await supabase.rpc(
-    "retry_learning_document",
-    { p_document_id: documentId.data },
+    "guest_retry_learning_document",
+    {
+      p_token_hash: user.guestTokenHash,
+      p_document_id: documentId.data,
+    },
   );
   if (error || queued !== true) {
     logger.warn("Learning material retry was rejected", {
@@ -53,19 +56,23 @@ export async function deleteLearningDocumentAction(formData: FormData) {
   const documentId = documentIdSchema.safeParse(formData.get("documentId"));
   if (!documentId.success) redirect("/dashboard/materials?materials_error=invalid");
 
-  const { supabase } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const { data: document, error: readError } = await supabase
     .from("learning_documents")
     .select("id")
     .eq("id", documentId.data)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (readError || !document) {
     redirect("/dashboard/materials?materials_error=delete");
   }
 
   const { data: objectKey, error: beginError } = await supabase.rpc(
-    "begin_learning_document_delete",
-    { p_document_id: documentId.data },
+    "guest_begin_learning_document_delete",
+    {
+      p_token_hash: user.guestTokenHash,
+      p_document_id: documentId.data,
+    },
   );
   if (beginError || typeof objectKey !== "string") {
     redirect("/dashboard/materials?materials_error=delete");
@@ -77,8 +84,11 @@ export async function deleteLearningDocumentAction(formData: FormData) {
   } catch {
     logger.error("Learning material deletion storage configuration is missing");
     const { error: cancelError } = await supabase.rpc(
-      "cancel_learning_document_delete",
-      { p_document_id: documentId.data },
+      "guest_cancel_learning_document_delete",
+      {
+        p_token_hash: user.guestTokenHash,
+        p_document_id: documentId.data,
+      },
     );
     if (cancelError) {
       logger.error("Learning material deletion could not be rolled back", {
@@ -97,8 +107,11 @@ export async function deleteLearningDocumentAction(formData: FormData) {
       status: storageError.statusCode ?? null,
     });
     const { error: cancelError } = await supabase.rpc(
-      "cancel_learning_document_delete",
-      { p_document_id: documentId.data },
+      "guest_cancel_learning_document_delete",
+      {
+        p_token_hash: user.guestTokenHash,
+        p_document_id: documentId.data,
+      },
     );
     if (cancelError) {
       logger.error("Learning material deletion could not be rolled back", {
@@ -109,8 +122,11 @@ export async function deleteLearningDocumentAction(formData: FormData) {
   }
 
   const { data: deleted, error: finalizeError } = await supabase.rpc(
-    "finalize_learning_document_delete",
-    { p_document_id: documentId.data },
+    "guest_finalize_learning_document_delete",
+    {
+      p_token_hash: user.guestTokenHash,
+      p_document_id: documentId.data,
+    },
   );
   if (finalizeError || deleted !== true) {
     logger.error("Learning material database deletion could not be completed", {

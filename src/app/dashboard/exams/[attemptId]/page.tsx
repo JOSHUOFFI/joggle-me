@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { Examination } from "@/components/examination";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { logger } from "@/lib/logger";
 import { examQuestionViewsSchema, parseAttemptRpcResult } from "@/lib/exams/types";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -12,14 +12,17 @@ export default async function ExaminationPage({
 }: {
   params: Promise<{ attemptId: string }>;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const { attemptId } = await params;
   const parsedAttemptId = z.uuid().safeParse(attemptId);
   if (!parsedAttemptId.success) notFound();
 
   const { data: attemptData, error: attemptError } = await supabase.rpc(
-    "get_quiz_attempt_state",
-    { p_attempt_id: parsedAttemptId.data },
+    "guest_get_quiz_attempt_state",
+    {
+      p_token_hash: user.guestTokenHash,
+      p_attempt_id: parsedAttemptId.data,
+    },
   );
   const attempt = parseAttemptRpcResult(attemptData);
   if (attemptError || !attempt) {
@@ -44,20 +47,21 @@ export default async function ExaminationPage({
     .maybeSingle();
   if (quizError || !quiz || quiz.generation_status !== "ready") notFound();
 
-  const [{ data: document }, admin] = await Promise.all([
+  const admin = createAdminSupabaseClient();
+  const [{ data: document }, { data: questionRow, error: questionError }] = await Promise.all([
     supabase
       .from("learning_documents")
       .select("original_filename")
       .eq("id", quiz.source_document_id)
+      .eq("user_id", user.id)
       .maybeSingle(),
-    Promise.resolve().then(() => createAdminSupabaseClient()),
+    admin
+      .from("learning_quizzes")
+      .select("questions")
+      .eq("id", quiz.id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
-  const { data: questionRow, error: questionError } = await admin
-    .from("learning_quizzes")
-    .select("questions")
-    .eq("id", quiz.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
   const questions = examQuestionViewsSchema.safeParse(questionRow?.questions);
   if (
     questionError ||

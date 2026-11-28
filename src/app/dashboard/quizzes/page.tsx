@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { QuizLibrary, type QuizLibraryEntry } from "@/components/quiz-library";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 
 export default async function MyQuizzesPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; deleted?: string }>;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const params = await searchParams;
   const { data: rows, error: quizError } = await supabase
     .from("learning_quizzes")
@@ -25,6 +25,7 @@ export default async function MyQuizzesPage({
     const { data: documents, error: documentError } = await supabase
       .from("learning_documents")
       .select("id,original_filename")
+      .eq("user_id", user.id)
       .in("id", documentIds);
     if (documentError) {
       loadError = true;

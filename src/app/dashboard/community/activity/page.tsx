@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { CommunityDisabled, CommunityFeedback, CommunityNavigation, CommunityPageHeader } from "@/components/community-ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityBlocks,
@@ -49,9 +49,9 @@ export default async function CommunityActivityPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { supabase } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const [features, params] = await Promise.all([
-    loadCommunityFeatures(supabase),
+    loadCommunityFeatures(),
     searchParams,
   ]);
   if (!features.community_enabled) {
@@ -68,9 +68,9 @@ export default async function CommunityActivityPage({
   let blocks: Awaited<ReturnType<typeof loadCommunityBlocks>> = [];
   try {
     const [blockRows, notificationRows] = await Promise.all([
-      loadCommunityBlocks(supabase),
+      loadCommunityBlocks(supabase, user.id),
       features.community_notifications_enabled
-        ? loadCommunityNotifications(supabase)
+        ? loadCommunityNotifications(supabase, user.id)
         : Promise.resolve([]),
     ]);
     blocks = blockRows;

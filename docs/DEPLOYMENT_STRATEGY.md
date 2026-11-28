@@ -1,5 +1,12 @@
 # Deployment Strategy
 
+> This strategy predates account removal. Supabase Auth setup, account
+> provisioning, owner controls, and Auth-backed preview tests no longer apply.
+> Supabase Auth is managed by the Supabase platform and its service schema is
+> retained. The application has no dependency on it. See the decommission
+> report for the boundary and current configuration status. No deployment was
+> performed as part of this work.
+
 ## 1. Environments
 
 ### Local
@@ -13,7 +20,7 @@
 
 - Vercel preview deployments for pull requests
 - Ephemeral or dedicated test database
-- Test Supabase Auth and Storage
+- Test guest workspace isolation and private Storage
 - Mock or tightly limited provider adapters
 
 ### Staging

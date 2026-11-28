@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { getAuthenticatedUser, parseAppRoles } from "@/lib/auth";
+import { getGuestWorkspace } from "@/lib/guest-workspace";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { isFeatureEnabled } from "@/lib/features";
 import { logger } from "@/lib/logger";
@@ -54,28 +54,13 @@ export async function POST(request: NextRequest) {
     return json({ message: "The quiz request origin could not be verified." }, 403);
   }
 
-  const { supabase, user } = await getAuthenticatedUser();
-  if (!user) return json({ message: "Log in to generate a quiz." }, 401);
-
-  const { data: active, error: activeError } = await supabase.rpc(
-    "is_account_active",
-    { p_user_id: user.id },
-  );
-  if (activeError) {
-    logger.error("Quiz generation account status check failed");
-    return json({ message: "We couldn’t verify your account. Please try again." }, 503);
-  }
-  if (active !== true) {
-    return json({ message: "Your account cannot generate quizzes." }, 403);
-  }
-
-  const { data: roleRows, error: roleError } = await supabase.rpc("get_my_roles");
-  if (roleError) {
-    logger.error("Quiz generation role check failed");
-    return json({ message: "We couldn’t verify your account role. Please try again." }, 503);
-  }
-  if (!parseAppRoles(roleRows).includes("learner")) {
-    return json({ message: "Only learner accounts can generate quizzes." }, 403);
+  const context = await getGuestWorkspace();
+  const { supabase, user } = context;
+  if (!user || !supabase) {
+    return json(
+      { message: "Start a guest workspace to generate a quiz." },
+      401,
+    );
   }
 
   const flags = await Promise.all([
@@ -109,6 +94,7 @@ export async function POST(request: NextRequest) {
     .from("learning_documents")
     .select("id,original_filename,status,analysis_status,analysis")
     .eq("id", generationRequest.documentId)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (documentError) {
     logger.error("Quiz source document could not be loaded", {
@@ -147,6 +133,7 @@ export async function POST(request: NextRequest) {
       .from("document_sections")
       .select("source_id,position,title,text,page_or_location")
       .eq("document_id", document.id)
+      .eq("user_id", user.id)
       .order("position");
     if (sourceError) {
       logger.error("Quiz source sections could not be loaded", {

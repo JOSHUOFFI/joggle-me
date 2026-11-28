@@ -1,7 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/types";
 import { logger } from "@/lib/logger";
 
 const documentSchema = z.object({
@@ -64,7 +64,7 @@ function checkedRows<T>(
 }
 
 export async function loadDashboardOverview(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
   userId: string,
 ): Promise<DashboardOverview> {
   const [materialCountResult, analyzedCountResult, quizCountResult, readyQuizCountResult, examCountResult, attemptsResult, activeResult, documentsResult, quizzesResult] = await Promise.all([

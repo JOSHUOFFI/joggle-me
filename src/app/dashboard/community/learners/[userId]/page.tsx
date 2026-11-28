@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { CommunityAvatar, CommunityDisabled, CommunityNavigation, CommunityPageHeader } from "@/components/community-ui";
 import { Card } from "@/components/ui/card";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityFeatures,
@@ -25,8 +25,8 @@ export default async function PublicCommunityProfilePage({
 }: {
   params: Promise<{ userId: string }>;
 }) {
-  const { supabase } = await requireRole(["learner"]);
-  const [{ userId }, features] = await Promise.all([params, loadCommunityFeatures(supabase)]);
+  const { supabase, user } = await requireGuestWorkspace();
+  const [{ userId }, features] = await Promise.all([params, loadCommunityFeatures()]);
   if (!uuidSchema.safeParse(userId).success) notFound();
 
   if (!features.community_enabled) {
@@ -34,7 +34,12 @@ export default async function PublicCommunityProfilePage({
   }
   let profile: Awaited<ReturnType<typeof loadPublicCommunityProfile>>;
   try {
-    profile = await loadPublicCommunityProfile(supabase, userId);
+    profile = await loadPublicCommunityProfile(
+      supabase,
+      user.id,
+      user.guestTokenHash,
+      userId,
+    );
   } catch (error) {
     if (!(error instanceof CommunityDataError)) throw error;
     return (

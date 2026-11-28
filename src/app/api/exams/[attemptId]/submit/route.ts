@@ -45,8 +45,9 @@ export async function POST(
 
   if (parsedBody.data.answers) {
     const { data: saved, error: saveError } = await learner.supabase.rpc(
-      "save_quiz_attempt_answers",
+      "guest_save_quiz_attempt_answers",
       {
+        p_token_hash: learner.user.guestTokenHash,
         p_attempt_id: parsedAttemptId.data,
         p_answers: parsedBody.data.answers,
       },
@@ -74,7 +75,8 @@ export async function POST(
     }
   }
 
-  const { data, error } = await learner.supabase.rpc("submit_quiz_attempt", {
+  const { data, error } = await learner.supabase.rpc("guest_submit_quiz_attempt", {
+    p_token_hash: learner.user.guestTokenHash,
     p_attempt_id: parsedAttemptId.data,
   });
   if (error) {

@@ -6,7 +6,7 @@ import { ProcessingRefresh } from "@/components/learning-materials";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { deleteQuizAction } from "@/lib/actions/quizzes";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { logger } from "@/lib/logger";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { quizQuestionsSchema } from "@/lib/quizzes/types";
@@ -22,7 +22,7 @@ export default async function QuizPreviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const { id } = await params;
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
@@ -33,6 +33,7 @@ export default async function QuizPreviewPage({
       "id,title,source_document_id,question_count,difficulty,duration_minutes,selected_topics,generation_status,created_at",
     )
     .eq("id", parsedId.data)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (error || !quiz) notFound();
 
@@ -40,6 +41,7 @@ export default async function QuizPreviewPage({
     .from("learning_documents")
     .select("id,original_filename")
     .eq("id", quiz.source_document_id)
+    .eq("user_id", user.id)
     .maybeSingle();
   let questionPayload: unknown = null;
   if (quiz.generation_status === "ready") {
@@ -80,6 +82,7 @@ export default async function QuizPreviewPage({
       .from("document_sections")
       .select("source_id,title,page_or_location")
       .eq("document_id", quiz.source_document_id)
+      .eq("user_id", user.id)
       .in("source_id", sourceIds);
     sourceIndex = new Map(
       (sources ?? []).map((source) => [source.source_id, source]),

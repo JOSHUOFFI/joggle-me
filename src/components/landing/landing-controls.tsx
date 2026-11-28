@@ -66,13 +66,13 @@ export function LandingHeader() {
   }
 
   return (
-    <header className={`landing-header sticky top-0 z-50 ${isScrolled || menuOpen ? "is-scrolled" : ""}`}>
-      <div className="landing-header-inner mx-auto flex h-[76px] max-w-7xl items-center justify-between gap-5 px-5 sm:px-8">
+    <header className={`landing-header sticky top-0 z-50 w-full max-w-none ${isScrolled || menuOpen ? "is-scrolled" : ""}`}>
+      <div className="landing-header-inner grid h-[76px] w-full max-w-none grid-cols-[1fr_auto_1fr] items-center gap-3 px-[clamp(20px,4vw,64px)]">
         <Link href="/" className="shrink-0" aria-label="JOGGLE ME home" onClick={closeMenu}>
           <Logo variant="responsive" tone="auto" priority />
         </Link>
 
-        <nav className="hidden items-center gap-4 lg:flex xl:gap-6" aria-label="Main navigation">
+        <nav className="hidden items-center justify-center gap-4 lg:flex xl:gap-6" aria-label="Main navigation">
           {navigation.map(({ label, href, section }) => (
             <Link key={label} href={href} aria-current={activeSection === section ? "location" : undefined} className={`landing-nav-link ${activeSection === section ? "is-active" : ""}`}>
               {label}
@@ -80,7 +80,7 @@ export function LandingHeader() {
           ))}
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center justify-self-end gap-2 sm:gap-3">
           <button
             type="button"
             onClick={toggleTheme}
@@ -90,8 +90,7 @@ export function LandingHeader() {
           >
             <ThemeIcons />
           </button>
-          <Link href="/login" className="landing-login hidden h-10 items-center justify-center rounded-full border border-[var(--lm-border)] px-4 text-sm font-semibold lg:inline-flex xl:px-5">Log in</Link>
-          <Link href="/register" className="landing-primary-button hidden h-10 items-center justify-center rounded-full px-5 text-sm font-semibold lg:inline-flex">Get Started <span aria-hidden="true" className="ml-2">→</span></Link>
+          <Link href="/workspace/start?next=%2Fdashboard" className="landing-primary-button hidden h-10 items-center justify-center rounded-full px-5 text-sm font-semibold lg:inline-flex">Start learning <span aria-hidden="true" className="ml-2">→</span></Link>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -115,8 +114,7 @@ export function LandingHeader() {
               <button type="button" onClick={toggleTheme} className="landing-theme-button inline-flex h-11 w-12 items-center justify-center rounded-xl border border-[var(--lm-border)]" aria-label="Toggle color theme">
                 <ThemeIcons />
               </button>
-              <Link href="/login" onClick={closeMenu} className="landing-login inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--lm-border)] text-sm font-semibold">Log in</Link>
-              <Link href="/register" onClick={closeMenu} className="landing-primary-button inline-flex h-11 flex-1 items-center justify-center rounded-xl text-sm font-semibold">Get Started <span aria-hidden="true" className="ml-2">→</span></Link>
+              <Link href="/workspace/start?next=%2Fdashboard" onClick={closeMenu} className="landing-primary-button inline-flex h-11 flex-1 items-center justify-center rounded-xl text-sm font-semibold">Start learning <span aria-hidden="true" className="ml-2">→</span></Link>
             </div>
           </div>
         </nav>

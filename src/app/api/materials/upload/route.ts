@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { getAuthenticatedUser, parseAppRoles } from "@/lib/auth";
+import { getGuestWorkspace } from "@/lib/guest-workspace";
 import { isFeatureEnabled } from "@/lib/features";
 import { logger } from "@/lib/logger";
 import {
@@ -83,28 +83,13 @@ export async function POST(request: NextRequest) {
     return json({ message: "The upload request origin could not be verified." }, 403);
   }
 
-  const { supabase, user } = await getAuthenticatedUser();
-  if (!user) return json({ message: "Log in to upload learning materials." }, 401);
-
-  const { data: active, error: activeError } = await supabase.rpc(
-    "is_account_active",
-    { p_user_id: user.id },
-  );
-  if (activeError) {
-    logger.error("Learning material account status check failed");
-    return json({ message: "We couldn’t verify your account. Please try again." }, 503);
-  }
-  if (active !== true) {
-    return json({ message: "Your account cannot upload learning materials." }, 403);
-  }
-
-  const { data: roleRows, error: roleError } = await supabase.rpc("get_my_roles");
-  if (roleError) {
-    logger.error("Learning material role check failed");
-    return json({ message: "We couldn’t verify your account role. Please try again." }, 503);
-  }
-  if (!parseAppRoles(roleRows).includes("learner")) {
-    return json({ message: "Only learner accounts can upload learning materials." }, 403);
+  const context = await getGuestWorkspace();
+  const { supabase, user } = context;
+  if (!user || !supabase) {
+    return json(
+      { message: "Start a guest workspace to upload learning materials." },
+      401,
+    );
   }
 
   if (
@@ -212,8 +197,9 @@ export async function POST(request: NextRequest) {
   }
 
   const { data: createdId, error: createError } = await supabase.rpc(
-    "create_learning_document",
+    "guest_create_learning_document",
     {
+      p_token_hash: user.guestTokenHash,
       p_document_id: documentId,
       p_original_filename: fileName,
       p_file_type: file.fileType,

@@ -1,5 +1,14 @@
 # Product Requirements
 
+> **Superseded account sections:** this document predates the permanent move to
+> anonymous guest workspaces. Sections describing user accounts, roles,
+> registration, consent profiles, and the Owner portal are obsolete. The
+> current architecture and decommission status are documented in
+> [SYSTEM_ARCHITECTURE.md](./SYSTEM_ARCHITECTURE.md) and
+> [AUTH_DECOMMISSION_REPORT.md](./AUTH_DECOMMISSION_REPORT.md). Learning
+> material, AI analysis, quiz generation, timed examinations, marking, results,
+> and performance requirements remain relevant.
+
 ## 1. Product summary
 
 JOGGLE ME combines personal learning materials with AI-generated assessment and performance intelligence. Its core loop is:
@@ -13,28 +22,21 @@ JOGGLE ME combines personal learning materials with AI-generated assessment and 
 7. JOGGLE ME marks the attempt and explains results.
 8. JOGGLE ME identifies topic performance and recommends improvements.
 
-## 2. Users and roles
+## 2. Workspace model
 
-### Initial roles
-
-- **Learner:** Owns a profile and learning data, uploads materials, generates quizzes, and takes examinations.
-- **Owner:** JoLight Technologies privileged operator. Performs platform-wide administration and feature control.
-- **Support:** Future least-privileged operational role, not equivalent to Owner.
-- **School administrator:** Reserved for a later authorised role; no permissions are implied in Phase 0.
-
-Role membership must be stored separately from publicly editable profile data and must be enforceable on the server. Ordinary users must never be able to change roles.
+Learner work is organized into anonymous guest workspaces. A random browser
+capability identifies a workspace; no accounts or roles are created. Workspace
+loss and retention behavior must be clear to learners. See
+[`SYSTEM_ARCHITECTURE.md`](./SYSTEM_ARCHITECTURE.md).
 
 ## 3. Core requirements
 
-### 3.1 Accounts
+### 3.1 Guest workspace
 
-- Register and authenticate with Supabase Auth.
-- Manage a profile and lawful personal information.
-- View learning history.
-- Manage uploaded materials.
-- View examination attempts and results.
-- Provide consent and privacy choices required for the user's jurisdiction.
-- Request deletion or export of account data once implementation begins.
+- Start learning without registration.
+- Keep learning history scoped to the browser-held workspace capability.
+- Allow a learner to set a workspace display name.
+- Define safe recovery, expiry, deletion, and export behavior before launch.
 
 ### 3.2 Learning materials
 
@@ -110,20 +112,11 @@ The architecture reserve:
 
 Gamification events must be derived from immutable domain events and must be idempotent.
 
-### 3.7 Owner portal
+### 3.7 Platform administration
 
-The owner portal must eventually provide authorised views and actions for:
-
-- Platform and registration statistics.
-- Lawfully collected user registration/contact information.
-- Account and feature status management.
-- Platform feature flags and capability controls.
-- AI, document, and quiz usage monitoring.
-- Role and permission management.
-- Administrative audit logs.
-- System health and operational indicators.
-
-All privileged actions require server-side authorization, step-up authentication for sensitive operations where available, and audit logs.
+The former Owner portal and its account, role, registration, and audit
+infrastructure were removed. Deployment-level feature configuration and
+operational monitoring require a separately designed server-side process.
 
 ### 3.8 Future social features
 

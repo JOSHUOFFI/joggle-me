@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/types";
 import { logger } from "@/lib/logger";
 import {
   BADGE_DEFINITIONS,
@@ -80,7 +80,7 @@ function labelBadge(badgeKey: BadgeKey) {
 }
 
 export async function loadGamificationDashboard(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
   userId: string,
   now = new Date(),
 ): Promise<GamificationDashboardData> {

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { PerformanceRecommendations } from "@/components/performance-recommendations";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { getPerformanceRemark } from "@/lib/exams/results";
 import { parseAttemptRpcResult } from "@/lib/exams/types";
 import { logger } from "@/lib/logger";
@@ -51,14 +51,17 @@ export default async function ExaminationResultsPage({
 }: {
   params: Promise<{ attemptId: string }>;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const { attemptId } = await params;
   const parsedAttemptId = z.uuid().safeParse(attemptId);
   if (!parsedAttemptId.success) notFound();
 
   const { data: attemptData, error: attemptError } = await supabase.rpc(
-    "get_quiz_attempt_state",
-    { p_attempt_id: parsedAttemptId.data },
+    "guest_get_quiz_attempt_state",
+    {
+      p_token_hash: user.guestTokenHash,
+      p_attempt_id: parsedAttemptId.data,
+    },
   );
   const attempt = parseAttemptRpcResult(attemptData);
   if (attemptError || !attempt) {

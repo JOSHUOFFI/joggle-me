@@ -25,12 +25,19 @@ test("premium landing page exposes real learning routes and responsive sections"
   await expect(page).toHaveURL(/#features$/);
   await expect(page.getByRole("heading", { name: "AI-Powered Learning" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Start Learning", exact: true }).click();
-  await expect(page).toHaveURL(/\/register$/);
+  await expect(page.getByRole("link", { name: "Start Learning", exact: true }))
+    .toHaveAttribute("href", "/workspace/start?next=%2Fdashboard");
+  await page.goto("/workspace/start?next=%2Fdashboard");
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.context().cookies()).resolves.toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ name: "joggle_workspace", httpOnly: true }),
+    ]),
+  );
 
   await page.goto("/");
-  await page.getByRole("link", { name: "Get Started", exact: true }).click();
-  await expect(page).toHaveURL(/\/register$/);
+  await page.getByRole("link", { name: "Start a guest workspace", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
 });
 
 test("theme control switches the landing page between light and dark palettes", async ({ page }) => {
@@ -90,18 +97,18 @@ test("landing navbar sticks, adopts its glass state, and tracks the active secti
   await expect(header).not.toHaveClass(/is-scrolled/);
 });
 
-test("community and dashboard calls to action use the existing protected platform routes", async ({ page }) => {
+test("community and dashboard calls to action open the anonymous learning workspace", async ({ page }) => {
   await page.goto("/");
   await page.locator("header").getByRole("link", { name: "Community" }).click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/dashboard\/community$/);
 
   await page.goto("/");
   await page.getByRole("link", { name: "Explore Community" }).click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/dashboard\/community$/);
 
   await page.goto("/");
   await page.getByRole("link", { name: "Explore Dashboard" }).click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
 });
 
 test("landing content remains visible with reduced motion enabled", async ({ page }) => {

@@ -1,35 +1,28 @@
-# Supabase local setup
+# Supabase database
 
-This project does not require or execute production database changes during Phase 1 development.
+Supabase provides PostgreSQL and private Storage. The application accesses it
+from server code with the service role; that key must remain server-only.
+Application sign-in, user profiles, roles, and owner administration have been
+removed. Guest workspace capabilities are stored as SHA-256 hashes in
+`public.guest_workspaces` and resolved only by a server-only RPC.
 
-## Prerequisites
+## Local setup
 
-- Supabase CLI
-- A local or isolated development Supabase project
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` only for server administrative tooling
+Set `NEXT_PUBLIC_SUPABASE_URL` to the development project URL and
+`SUPABASE_SERVICE_ROLE_KEY` to its server-only key. Check that the URL's project
+reference is the intended development project before running the app or tests.
+Do not put credentials in client code, `NEXT_PUBLIC_*` variables, source files,
+or test output.
 
-## Apply migrations locally
+## Migrations
 
-```powershell
-supabase start
-supabase db reset
-```
+The migration history includes earlier account-based schema migrations because
+they are part of the database's applied history. The forward migration
+`20261128120000_anonymous_guest_workspaces.sql` removes the account schema,
+retargets learning ownership to guest workspaces, removes the old Auth user
+records, and preserves learning rows and private Storage objects. It cannot
+restore deleted account identities or credentials; see
+[`docs/AUTH_DECOMMISSION_REPORT.md`](../docs/AUTH_DECOMMISSION_REPORT.md).
 
-The migration under `supabase/migrations/` creates the Phase 1 profiles, roles, consent, feature flags, audit log, RLS policies, and owner RPC foundations.
-
-## Initial owner provisioning
-
-Owner assignment is intentionally never exposed through registration or browser code.
-
-1. Create and verify a normal account through Supabase Auth.
-2. Obtain that account's UUID.
-3. Set `INITIAL_OWNER_USER_ID` on the local provisioning environment only.
-4. Run the provisioning operation through a server or SQL environment with the Supabase **service-role** context.
-5. Call `public.provision_initial_owner('<user-id>'::uuid)`.
-6. Remove `INITIAL_OWNER_USER_ID` and the service-role key from the application environment as soon as provisioning is complete.
-
-The SQL function refuses public, anonymous, and authenticated execution and only allows the service role. It also refuses to assign a second owner.
-
-Do not configure a hardcoded owner email or password. Never run owner provisioning against production until an explicit production runbook and break-glass recovery process are approved.
+Use `supabase/reports/auth-decommission-integrity.sql` for the read-only
+post-migration integrity checks. It contains no mutation statements.

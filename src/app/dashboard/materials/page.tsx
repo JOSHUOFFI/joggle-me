@@ -1,7 +1,7 @@
 import { FileText } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { LearningMaterials } from "@/components/learning-materials";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { isFeatureEnabled } from "@/lib/features";
 import { getMaxUploadBytes } from "@/lib/materials/files";
 
@@ -10,9 +10,9 @@ export default async function LearningMaterialsPage({
 }: {
   searchParams: Promise<{ materials_error?: string }>;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
-  const [profileResult, uploadsEnabled, analysisEnabled, documentResult, params] = await Promise.all([
-    supabase.from("profiles").select("first_name,last_name").eq("id", user.id).maybeSingle(),
+  const { supabase, user } = await requireGuestWorkspace();
+  const [workspaceResult, uploadsEnabled, analysisEnabled, documentResult, params] = await Promise.all([
+    supabase.from("guest_workspaces").select("display_name").eq("id", user.id).maybeSingle(),
     isFeatureEnabled(supabase, "learning_material_uploads"),
     isFeatureEnabled(supabase, "ai_document_analysis"),
     supabase
@@ -22,9 +22,7 @@ export default async function LearningMaterialsPage({
       .order("created_at", { ascending: false }),
     searchParams,
   ]);
-  const name = profileResult.data?.first_name
-    ? `${profileResult.data.first_name}${profileResult.data.last_name ? ` ${profileResult.data.last_name}` : ""}`
-    : "Learner";
+  const name = workspaceResult.data?.display_name ?? "Learner";
   const documents = (documentResult.data ?? []).map((document) => ({
     ...document,
     analysis: typeof document.analysis === "object" && document.analysis !== null

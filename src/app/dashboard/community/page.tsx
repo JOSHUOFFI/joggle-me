@@ -10,7 +10,7 @@ import {
 } from "@/components/community-ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityFeatures,
@@ -39,9 +39,9 @@ export default async function CommunityFeedPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const [features, params] = await Promise.all([
-    loadCommunityFeatures(supabase),
+    loadCommunityFeatures(),
     searchParams,
   ]);
   return (
@@ -59,6 +59,7 @@ export default async function CommunityFeedPage({
         <FeedContent
           supabase={supabase}
           userId={user.id}
+          guestTokenHash={user.guestTokenHash}
           page={params.page}
         />
       )}
@@ -69,17 +70,19 @@ export default async function CommunityFeedPage({
 async function FeedContent({
   supabase,
   userId,
+  guestTokenHash,
   page,
 }: {
-  supabase: Awaited<ReturnType<typeof requireRole>>["supabase"];
+  supabase: Awaited<ReturnType<typeof requireGuestWorkspace>>["supabase"];
   userId: string;
+  guestTokenHash: string;
   page?: string;
 }) {
   const pageNumber = Number(page ?? 1);
   const safePage = Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : 1;
   let feed: Awaited<ReturnType<typeof loadCommunityFeed>>;
   try {
-    feed = await loadCommunityFeed(supabase, userId, safePage);
+    feed = await loadCommunityFeed(supabase, userId, guestTokenHash, safePage);
   } catch (error) {
     if (!(error instanceof CommunityDataError)) throw error;
     return <Card className="p-5 text-sm text-red-700" role="alert">{error.message}</Card>;

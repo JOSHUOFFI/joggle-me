@@ -12,7 +12,6 @@ import {
   FileText,
   LayoutDashboard,
   LifeBuoy,
-  LogOut,
   Menu,
   Moon,
   Settings2,
@@ -123,7 +122,7 @@ function LearnerSidebar({ name, onNavigate }: { name: string; onNavigate?: () =>
   return (
     <>
       <div className="learner-brand">
-        <Link href="/dashboard" aria-label="JOGGLE ME dashboard" onClick={onNavigate}>
+        <Link href="/dashboard" prefetch={false} aria-label="JOGGLE ME dashboard" onClick={onNavigate}>
           <Logo variant="compact" tone="auto" />
         </Link>
       </div>
@@ -138,6 +137,7 @@ function LearnerSidebar({ name, onNavigate }: { name: string; onNavigate?: () =>
                   <li key={label}>
                     <Link
                       href={href}
+                      prefetch={false}
                       onClick={onNavigate}
                       className={`learner-nav-link${active ? " is-active" : ""}`}
                       aria-current={active ? "page" : undefined}
@@ -153,19 +153,16 @@ function LearnerSidebar({ name, onNavigate }: { name: string; onNavigate?: () =>
         ))}
       </nav>
       <div className="learner-sidebar-bottom">
-        <Link href="/profile" className="learner-profile-link" onClick={onNavigate}>
+        <Link href="/profile" prefetch={false} className="learner-profile-link" onClick={onNavigate}>
           <UserAvatar name={name} />
           <span className="min-w-0">
             <span className="learner-profile-name">{name}</span>
-            <span className="learner-profile-role">Learner account</span>
+            <span className="learner-profile-role">Guest workspace</span>
           </span>
         </Link>
-        <form action="/auth/logout" method="post">
-          <button className="learner-signout" type="submit">
-            <LogOut size={17} aria-hidden="true" />
-            <span>Sign out</span>
-          </button>
-        </form>
+        <Link className="learner-signout" href="/workspace/start?new=1&amp;next=%2Fdashboard" onClick={onNavigate}>
+          <span>Start a new workspace</span>
+        </Link>
         <p className="learner-powered">Powered by JoLight Technologies.</p>
       </div>
     </>
@@ -229,9 +226,9 @@ export function LearnerAppShell({
         >
           <Menu size={20} aria-hidden="true" />
         </button>
-        <Link href="/dashboard" aria-label="JOGGLE ME dashboard"><Logo variant="symbol" tone="auto" /></Link>
+        <Link href="/dashboard" prefetch={false} aria-label="JOGGLE ME dashboard"><Logo variant="symbol" tone="auto" /></Link>
         <span className="learner-mobile-title">{routeTitle(pathname)}</span>
-        <Link href="/dashboard/community/activity" className="learner-icon-button" aria-label="Community notifications">
+        <Link href="/dashboard/community/activity" prefetch={false} className="learner-icon-button" aria-label="Community notifications">
           <Bell size={18} aria-hidden="true" />
         </Link>
         <ThemeToggle />
@@ -260,7 +257,7 @@ export function LearnerAppShell({
             <p className="learner-topbar-title">{routeTitle(pathname)}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/community/activity" className="learner-icon-button" aria-label="Community notifications" title="Community notifications">
+            <Link href="/dashboard/community/activity" prefetch={false} className="learner-icon-button" aria-label="Community notifications" title="Community notifications">
               <Bell size={18} aria-hidden="true" />
             </Link>
             <ThemeToggle />
@@ -272,11 +269,9 @@ export function LearnerAppShell({
               </summary>
               <div className="learner-profile-dropdown">
                 <p className="learner-dropdown-name">{learnerName}</p>
-                <p className="learner-dropdown-role">Learner account</p>
-                <Link href="/profile">Profile and settings</Link>
-                <form action="/auth/logout" method="post">
-                  <button type="submit"><LogOut size={16} aria-hidden="true" /> Sign out</button>
-                </form>
+                <p className="learner-dropdown-role">Guest workspace</p>
+                <Link href="/profile" prefetch={false}>Profile and settings</Link>
+                <Link href="/workspace/start?new=1&amp;next=%2Fdashboard" prefetch={false}>Start a new workspace</Link>
               </div>
             </details>
           </div>

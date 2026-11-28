@@ -80,7 +80,7 @@ export default function Home() {
             JOGGLE ME is your AI-powered learning companion, helping you study smarter, practise effectively and achieve more.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/register" className="landing-primary-button inline-flex min-h-12 items-center justify-center rounded-full px-7 text-sm font-semibold transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7655D9]/25">
+            <Link href="/workspace/start?next=%2Fdashboard" className="landing-primary-button inline-flex min-h-12 items-center justify-center rounded-full px-7 text-sm font-semibold transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7655D9]/25">
               Start Learning <ArrowRight size={17} className="ml-2" />
             </Link>
             <Link href="#features" className="landing-secondary-button inline-flex min-h-12 items-center justify-center rounded-full border border-[#7655D9]/35 px-7 text-sm font-semibold transition-colors hover:bg-[#7655D9]/[0.06] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7655D9]/20">
@@ -244,8 +244,8 @@ export default function Home() {
             <p className="mt-4 text-[11px] text-white/50">Photography: <a href="https://unsplash.com/@vitalygariev" target="_blank" rel="noreferrer" className="underline decoration-white/30 underline-offset-2 hover:text-white">Vitaly Gariev</a> and <a href="https://unsplash.com/photos/1522202176988-66273c2fd55f" target="_blank" rel="noreferrer" className="underline decoration-white/30 underline-offset-2 hover:text-white">Unsplash contributors</a>.</p>
           </div>
           <FooterLinks title="Quick Links" links={[["Home", "#home"], ["Features", "#features"], ["How It Works", "#how-it-works"], ["Community", "/dashboard/community"], ["About", "#about"]]} />
-          <FooterLinks title="Get Started" links={[["Create an account", "/register"], ["Log in", "/login"], ["Learning FAQs", "#faq"]]} />
-          <div><h2 className="text-sm font-bold">Made for lifelong learning</h2><p className="mt-3 text-sm leading-6 text-white/65">A calmer way to practise, see your progress and keep moving toward your goals.</p><Link href="/register" className="mt-5 inline-flex items-center text-sm font-semibold text-[#C0B0FF] hover:text-white">Start learning <ArrowRight size={15} className="ml-2" /></Link></div>
+          <FooterLinks title="Get Started" links={[["Start a guest workspace", "/workspace/start?next=%2Fdashboard"], ["Learning FAQs", "#faq"]]} />
+          <div><h2 className="text-sm font-bold">Made for lifelong learning</h2><p className="mt-3 text-sm leading-6 text-white/65">A calmer way to practise, see your progress and keep moving toward your goals.</p><Link href="/workspace/start?next=%2Fdashboard" className="mt-5 inline-flex items-center text-sm font-semibold text-[#C0B0FF] hover:text-white">Start learning <ArrowRight size={15} className="ml-2" /></Link></div>
         </div>
         <div className="mx-auto flex max-w-7xl flex-col gap-2 border-t border-white/10 py-5 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} JOGGLE ME. Powered by JoLight Technologies. All rights reserved.</p>

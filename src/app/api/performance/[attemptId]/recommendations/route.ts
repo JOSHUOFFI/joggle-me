@@ -40,8 +40,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   const { data: attemptData, error: attemptError } = await learner.supabase.rpc(
-    "get_quiz_attempt_state",
-    { p_attempt_id: parsedAttemptId.data },
+    "guest_get_quiz_attempt_state",
+    {
+      p_token_hash: learner.user.guestTokenHash,
+      p_attempt_id: parsedAttemptId.data,
+    },
   );
   const attempt = parseAttemptRpcResult(attemptData);
   if (attemptError || !attempt) {

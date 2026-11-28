@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/types";
 import { logger } from "@/lib/logger";
 import { documentAnalysisSchema } from "@/lib/materials/types";
 import {
@@ -94,7 +94,7 @@ function chunk<T>(values: T[], size: number) {
 }
 
 async function loadFinalizedAttempts(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
   userId: string,
 ) {
   const attempts: FinalizedAttemptRow[] = [];
@@ -156,7 +156,7 @@ export async function getOwnedQuizQuestions(
 }
 
 export async function loadLearnerPerformance(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
   userId: string,
 ): Promise<PerformanceAttemptRecord[]> {
   const attempts = await loadFinalizedAttempts(supabase, userId);

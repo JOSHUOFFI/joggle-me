@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { CommunityDisabled, CommunityFeedback, CommunityNavigation, CommunityPageHeader } from "@/components/community-ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityFeatures,
@@ -18,9 +18,9 @@ export default async function CommunityProfileSettingsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const [features, params] = await Promise.all([
-    loadCommunityFeatures(supabase),
+    loadCommunityFeatures(),
     searchParams,
   ]);
   let profile: Awaited<ReturnType<typeof loadOwnCommunityProfile>> = null;

@@ -66,14 +66,16 @@ html.dark {
 
 .landing-header {
   display: flex;
+  width: 100%;
+  max-width: none;
   flex-direction: column;
   justify-content: center;
   height: 76px;
-  border-bottom: 1px solid transparent;
-  background-color: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid color-mix(in srgb, #7655d9 10%, var(--lm-border));
+  background-color: color-mix(in srgb, var(--lm-background) 91%, transparent);
+  box-shadow: 0 5px 20px rgba(28, 20, 58, .045);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, backdrop-filter 220ms ease;
   isolation: isolate;
 }
@@ -84,6 +86,10 @@ html.dark {
   box-shadow: 0 7px 24px rgba(28, 20, 58, .07);
   backdrop-filter: blur(16px) saturate(145%);
   -webkit-backdrop-filter: blur(16px) saturate(145%);
+}
+
+.dark .landing-header {
+  box-shadow: 0 5px 22px rgba(0, 0, 0, .16);
 }
 
 .dark .landing-header.is-scrolled {
@@ -128,170 +134,6 @@ html.dark {
 
 .dark .landing-mobile-nav-link.is-active {
   color: #c0b0ff;
-}
-
-.login-page {
-  --login-background: #f7f7fc;
-  --login-surface: #ffffff;
-  --login-foreground: #17152a;
-  --login-muted: #77758a;
-  --login-border: #e8e6f0;
-  background: var(--login-background);
-  color: var(--login-foreground);
-}
-
-.dark .login-page {
-  --login-background: #11101d;
-  --login-surface: #1b1929;
-  --login-foreground: #f4f1ff;
-  --login-muted: #b6b2c5;
-  --login-border: #39354a;
-}
-
-.login-form-side {
-  background: var(--login-background);
-}
-
-.login-card {
-  border-color: var(--login-border);
-  background: var(--login-surface);
-  box-shadow: 0 18px 54px rgba(53, 33, 107, .075);
-  animation: login-enter 420ms cubic-bezier(.2, .7, .2, 1) both;
-}
-
-.dark .login-card {
-  box-shadow: 0 20px 56px rgba(0, 0, 0, .24);
-}
-
-.login-muted,
-.login-subtitle,
-.login-account-prompt {
-  color: var(--login-muted);
-}
-
-.login-eyebrow,
-.login-link {
-  color: #6745c4;
-}
-
-.dark .login-eyebrow,
-.dark .login-link {
-  color: #b8a5ff;
-}
-
-.login-title,
-.login-label {
-  color: var(--login-foreground);
-}
-
-.login-input {
-  height: 48px;
-  border-color: var(--login-border);
-  background: var(--login-surface);
-  color: var(--login-foreground);
-}
-
-.login-card .login-input {
-  border-color: var(--login-border);
-  background: var(--login-surface);
-  color: var(--login-foreground);
-}
-
-.login-input::placeholder {
-  color: var(--login-muted);
-  opacity: .78;
-}
-
-.login-link {
-  text-decoration: none;
-  transition: color 160ms ease;
-}
-
-.login-link:hover {
-  color: #4b2a9e;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.dark .login-link:hover {
-  color: #d0c4ff;
-}
-
-.login-submit {
-  background: linear-gradient(110deg, #7655d9, #5030a8);
-  box-shadow: 0 9px 22px rgba(80, 48, 174, .2);
-  transition: filter 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
-.login-submit:hover:not(:disabled) {
-  filter: brightness(1.06);
-  box-shadow: 0 12px 26px rgba(80, 48, 174, .26);
-  transform: translateY(-1px);
-}
-
-.login-password-toggle,
-.login-theme-toggle {
-  border-color: var(--login-border);
-  color: var(--login-muted);
-  background: var(--login-surface);
-}
-
-.login-password-toggle:hover,
-.login-theme-toggle:hover {
-  color: #6745c4;
-  background: color-mix(in srgb, var(--login-surface) 90%, #7655d9);
-}
-
-.dark .login-password-toggle:hover,
-.dark .login-theme-toggle:hover {
-  color: #c7b9ff;
-}
-
-.login-success,
-.login-error {
-  border: 1px solid transparent;
-}
-
-.login-success {
-  border-color: rgba(33, 155, 112, .2);
-  background: #effaf5;
-  color: #176b50;
-}
-
-.login-error {
-  border-color: rgba(217, 79, 88, .22);
-  background: #fff3f3;
-  color: #a5323a;
-}
-
-.dark .login-success {
-  border-color: rgba(73, 190, 148, .28);
-  background: rgba(33, 155, 112, .12);
-  color: #91e1c3;
-}
-
-.dark .login-error {
-  border-color: rgba(255, 127, 135, .25);
-  background: rgba(217, 79, 88, .13);
-  color: #ffb0b5;
-}
-
-.login-mobile-visual {
-  box-shadow: 0 10px 26px rgba(53, 33, 107, .14);
-  animation: login-enter 500ms ease both;
-}
-
-.login-mobile-visual .login-learner-image {
-  object-position: 42% 58%;
-}
-
-.login-photo-panel {
-  background: #35216b;
-}
-
-@keyframes login-enter {
-  from { opacity: .4; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .learner-app-shell {
@@ -699,15 +541,13 @@ html.dark {
 }
 
 .landing-secondary-button,
-.landing-login,
 .landing-theme-button {
   color: var(--lm-foreground);
   background-color: var(--lm-surface);
   transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
-.landing-theme-button:hover,
-.landing-login:hover {
+.landing-theme-button:hover {
   border-color: #7655d9;
   background-color: var(--lm-hover);
 }

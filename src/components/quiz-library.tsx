@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { deleteQuizAction } from "@/lib/actions/quizzes";
-import type { requireAuthenticatedUser } from "@/lib/auth";
+import type { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 type DashboardSupabase = Awaited<
-  ReturnType<typeof requireAuthenticatedUser>
+  ReturnType<typeof requireGuestWorkspace>
 >["supabase"];
 
 export type QuizLibraryEntry = {

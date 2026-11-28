@@ -1,4 +1,4 @@
-import { parseAppRoles, requireAuthenticatedUser } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { GamificationDashboard } from "@/components/gamification-dashboard";
@@ -21,32 +21,23 @@ import {
 import { DashboardCommunityPreview } from "@/components/dashboard-community-preview";
 
 export default async function DashboardPage() {
-  const { supabase, user } = await requireAuthenticatedUser();
-  const [{ data: profile }, { data: roleRows }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("first_name,last_name,learner_category")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase.rpc("get_my_roles"),
+  const { supabase, user } = await requireGuestWorkspace();
+  const { data: workspace } = await supabase
+    .from("guest_workspaces")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const name = workspace?.display_name ?? "Learner";
+  const [overview, gamification] = await Promise.all([
+    loadDashboardOverview(supabase, user.id),
+    loadGamificationDashboardSafely(supabase, user.id),
   ]);
-  const isLearner = parseAppRoles(roleRows).includes("learner");
-
-  const name = profile?.first_name
-    ? `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ""}`
-    : "Learner";
-  const [overview, gamification] = isLearner
-    ? await Promise.all([
-        loadDashboardOverview(supabase, user.id),
-        loadGamificationDashboardSafely(supabase, user.id),
-      ])
-    : [null, null];
 
   return (
     <AppShell learnerName={name}>
       <div className="dashboard-home space-y-6">
         <DashboardWelcome name={name.split(" ")[0]} />
-        {isLearner && overview && (
+        {overview && (
           <>
             <DashboardStats data={overview} gamification={gamification?.data ?? null} />
             <div className="grid gap-4 xl:grid-cols-2">
@@ -61,7 +52,11 @@ export default async function DashboardPage() {
               <PerformancePreview data={overview} />
               <RecentActivity data={overview} />
             </div>
-            <DashboardCommunityPreview supabase={supabase} userId={user.id} />
+            <DashboardCommunityPreview
+              supabase={supabase}
+              userId={user.id}
+              guestTokenHash={user.guestTokenHash}
+            />
             {gamification && <GamificationSection data={gamification.data} loadError={gamification.error} />}
           </>
         )}
@@ -71,7 +66,7 @@ export default async function DashboardPage() {
 }
 
 async function loadGamificationDashboardSafely(
-  supabase: Awaited<ReturnType<typeof requireAuthenticatedUser>>["supabase"],
+  supabase: Awaited<ReturnType<typeof requireGuestWorkspace>>["supabase"],
   userId: string,
 ): Promise<{ data: GamificationDashboardData | null; error: GamificationDataError | null }> {
   try {

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { ExamStartButton } from "@/components/exam-start-button";
 import { Card } from "@/components/ui/card";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import { isFeatureEnabled } from "@/lib/features";
 
 export default async function ExaminationInstructionsPage({
@@ -12,7 +12,7 @@ export default async function ExaminationInstructionsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { supabase } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const { id } = await params;
   const quizId = z.uuid().safeParse(id);
   if (!quizId.success) notFound();
@@ -23,6 +23,7 @@ export default async function ExaminationInstructionsPage({
       "id,title,source_document_id,question_count,difficulty,duration_minutes,selected_topics,generation_status",
     )
     .eq("id", quizId.data)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (error || !quiz || quiz.generation_status !== "ready") notFound();
 
@@ -31,6 +32,7 @@ export default async function ExaminationInstructionsPage({
       .from("learning_documents")
       .select("id,original_filename")
       .eq("id", quiz.source_document_id)
+      .eq("user_id", user.id)
       .maybeSingle(),
     isFeatureEnabled(supabase, "examination_functionality"),
   ]);

@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { NextRequest } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { logger } from "@/lib/logger";
-import {
-  examQuestionViewsSchema,
-  parseAttemptRpcResult,
-} from "@/lib/exams/types";
+import { parseAttemptRpcResult } from "@/lib/exams/types";
 import {
   examJson,
   getExamLearnerContext,
@@ -33,7 +29,8 @@ export async function POST(request: NextRequest) {
     return examJson({ message: "Choose a valid quiz to start." }, 400);
   }
 
-  const { data, error } = await context.supabase.rpc("start_quiz_attempt", {
+  const { data, error } = await context.supabase.rpc("guest_start_quiz_attempt", {
+    p_token_hash: context.user.guestTokenHash,
     p_quiz_id: parsedBody.data.quizId,
   });
   if (error) {
@@ -58,39 +55,5 @@ export async function POST(request: NextRequest) {
     return examJson({ state: attempt }, 200);
   }
 
-  let admin: ReturnType<typeof createAdminSupabaseClient>;
-  try {
-    admin = createAdminSupabaseClient();
-  } catch {
-    logger.error("Examination question storage is not configured");
-    return examJson({ message: "Examination questions are temporarily unavailable." }, 503);
-  }
-
-  const { data: quiz, error: quizError } = await admin
-    .from("learning_quizzes")
-    .select("question_count,questions")
-    .eq("id", attempt.quiz_id)
-    .eq("user_id", context.user.id)
-    .eq("generation_status", "ready")
-    .maybeSingle();
-  if (quizError || !quiz) {
-    logger.error("Examination questions could not be loaded", {
-      code: quizError?.code ?? null,
-    });
-    return examJson({ message: "Examination questions are temporarily unavailable." }, 503);
-  }
-
-  const questions = examQuestionViewsSchema.safeParse(quiz.questions);
-  if (
-    !questions.success ||
-    questions.data.length !== attempt.question_count ||
-    quiz.question_count !== attempt.question_count
-  ) {
-    logger.error("Saved examination questions failed validation", {
-      quizId: attempt.quiz_id,
-    });
-    return examJson({ message: "The saved examination questions are incomplete." }, 409);
-  }
-
-  return examJson({ state: attempt, questions: questions.data }, 201);
+  return examJson({ state: attempt }, 201);
 }

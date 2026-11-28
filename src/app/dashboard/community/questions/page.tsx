@@ -11,7 +11,7 @@ import {
 } from "@/components/community-ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityFeatures,
@@ -45,9 +45,9 @@ export default async function CommunityQuestionsPage({
 }: {
   searchParams: QuestionSearchParams;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const [features, params] = await Promise.all([
-    loadCommunityFeatures(supabase),
+    loadCommunityFeatures(),
     searchParams,
   ]);
   return (
@@ -65,6 +65,7 @@ export default async function CommunityQuestionsPage({
         <QuestionsContent
           supabase={supabase}
           userId={user.id}
+          guestTokenHash={user.guestTokenHash}
           params={params}
           commentsEnabled={features.community_posts_enabled}
         />
@@ -76,17 +77,19 @@ export default async function CommunityQuestionsPage({
 async function QuestionsContent({
   supabase,
   userId,
+  guestTokenHash,
   params,
   commentsEnabled,
 }: {
-  supabase: Awaited<ReturnType<typeof requireRole>>["supabase"];
+  supabase: Awaited<ReturnType<typeof requireGuestWorkspace>>["supabase"];
   userId: string;
+  guestTokenHash: string;
   params: Awaited<QuestionSearchParams>;
   commentsEnabled: boolean;
 }) {
   let questions: Awaited<ReturnType<typeof loadCommunityQuestions>>;
   try {
-    questions = await loadCommunityQuestions(supabase, userId, {
+    questions = await loadCommunityQuestions(supabase, userId, guestTokenHash, {
       subject: params.subject?.slice(0, 80),
       topic: params.topic?.slice(0, 100),
       status: params.status,

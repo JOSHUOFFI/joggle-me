@@ -12,7 +12,7 @@ import {
 } from "@/components/community-ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityFeatures,
@@ -42,11 +42,11 @@ type Props = {
 };
 
 export default async function StudyGroupDetailPage({ params, searchParams }: Props) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const [{ groupId }, query, features] = await Promise.all([
     params,
     searchParams,
-    loadCommunityFeatures(supabase),
+    loadCommunityFeatures(),
   ]);
   if (!uuidSchema.safeParse(groupId).success) notFound();
 
@@ -60,6 +60,7 @@ export default async function StudyGroupDetailPage({ params, searchParams }: Pro
         <GroupContent
           supabase={supabase}
           userId={user.id}
+          guestTokenHash={user.guestTokenHash}
           groupId={groupId}
           postsEnabled={features.community_posts_enabled}
         />
@@ -71,11 +72,13 @@ export default async function StudyGroupDetailPage({ params, searchParams }: Pro
 async function GroupContent({
   supabase,
   userId,
+  guestTokenHash,
   groupId,
   postsEnabled,
 }: {
-  supabase: Awaited<ReturnType<typeof requireRole>>["supabase"];
+  supabase: Awaited<ReturnType<typeof requireGuestWorkspace>>["supabase"];
   userId: string;
+  guestTokenHash: string;
   groupId: string;
   postsEnabled: boolean;
 }) {
@@ -83,8 +86,8 @@ async function GroupContent({
   let feed: Awaited<ReturnType<typeof loadCommunityFeed>>;
   try {
     [detail, feed] = await Promise.all([
-      loadStudyGroupDetail(supabase, userId, groupId),
-      loadCommunityFeed(supabase, userId, 1, groupId),
+      loadStudyGroupDetail(supabase, userId, guestTokenHash, groupId),
+      loadCommunityFeed(supabase, userId, guestTokenHash, 1, groupId),
     ]);
   } catch (error) {
     if (!(error instanceof CommunityDataError)) throw error;

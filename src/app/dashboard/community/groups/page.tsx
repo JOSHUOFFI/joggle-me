@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { CommunityDisabled, CommunityFeedback, CommunityNavigation, CommunityPageHeader } from "@/components/community-ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   CommunityDataError,
   loadCommunityFeatures,
@@ -22,8 +22,8 @@ export default async function StudyGroupsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
-  const [features, params] = await Promise.all([loadCommunityFeatures(supabase), searchParams]);
+  const { supabase, user } = await requireGuestWorkspace();
+  const [features, params] = await Promise.all([loadCommunityFeatures(), searchParams]);
   return (
     <AppShell>
       <CommunityNavigation />
@@ -36,7 +36,11 @@ export default async function StudyGroupsPage({
       {!features.community_enabled || !features.study_groups_enabled ? (
         <CommunityDisabled feature="Study groups" />
       ) : (
-        <GroupsContent supabase={supabase} userId={user.id} />
+        <GroupsContent
+          supabase={supabase}
+          userId={user.id}
+          guestTokenHash={user.guestTokenHash}
+        />
       )}
     </AppShell>
   );
@@ -45,13 +49,15 @@ export default async function StudyGroupsPage({
 async function GroupsContent({
   supabase,
   userId,
+  guestTokenHash,
 }: {
-  supabase: Awaited<ReturnType<typeof requireRole>>["supabase"];
+  supabase: Awaited<ReturnType<typeof requireGuestWorkspace>>["supabase"];
   userId: string;
+  guestTokenHash: string;
 }) {
   let groups: Awaited<ReturnType<typeof loadStudyGroups>>;
   try {
-    groups = await loadStudyGroups(supabase, userId);
+    groups = await loadStudyGroups(supabase, userId, guestTokenHash);
   } catch (error) {
     if (!(error instanceof CommunityDataError)) throw error;
     return <Card className="p-5 text-sm text-red-700" role="alert">{error.message}</Card>;

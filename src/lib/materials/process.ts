@@ -63,20 +63,19 @@ export async function processLearningDocument(
   let extractionReady = false;
 
   try {
-    const { data: profile, error: profileError } = await admin
-      .from("profiles")
-      .select("account_status,deleted_at")
+    const { data: workspace, error: workspaceError } = await admin
+      .from("guest_workspaces")
+      .select("id")
       .eq("id", userId)
+      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
     if (
-      profileError ||
-      !profile ||
-      profile.account_status !== "active" ||
-      profile.deleted_at
+      workspaceError ||
+      !workspace
     ) {
       throw new DocumentProcessingError(
         "processing_failed",
-        "This account cannot process documents right now. Contact support if this continues.",
+        "This learning workspace has expired and cannot process documents.",
       );
     }
 

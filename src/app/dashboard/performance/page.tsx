@@ -5,7 +5,7 @@ import {
   type PerformanceHistoryEntry,
 } from "@/components/performance-dashboard";
 import { Card } from "@/components/ui/card";
-import { requireRole } from "@/lib/auth";
+import { requireGuestWorkspace } from "@/lib/guest-workspace";
 import {
   buildSubjectPerformance,
   buildTopicPerformance,
@@ -119,7 +119,7 @@ export default async function PerformancePage({
 }: {
   searchParams: Promise<PerformanceSearchParams>;
 }) {
-  const { supabase, user } = await requireRole(["learner"]);
+  const { supabase, user } = await requireGuestWorkspace();
   const params = await searchParams;
   const parsedFilters = parsePerformanceFilters(params);
   const defaultFilters = parsePerformanceFilters({});

@@ -1,7 +1,8 @@
 import "server-only";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/types";
 import { logger } from "@/lib/logger";
+import { getFeatureSnapshot } from "@/lib/features";
 
 const postRowSchema = z.object({
   id: z.uuid(),
@@ -10,37 +11,6 @@ const postRowSchema = z.object({
   post_type: z.enum(["discussion", "study_tip", "achievement"]),
   body: z.string(),
   created_at: z.iso.datetime({ offset: true }),
-});
-
-const reportRowSchema = z.object({
-  id: z.uuid(),
-  reported_by: z.uuid(),
-  target_type: z.enum(["post", "comment", "question", "answer"]),
-  target_id: z.uuid(),
-  reason: z.string(),
-  created_at: z.iso.datetime({ offset: true }),
-});
-
-const moderationTextSchema = z.object({
-  id: z.uuid(),
-  author_id: z.uuid(),
-  body: z.string().optional(),
-  title: z.string().optional(),
-});
-
-const ownerOverviewSchema = z.object({
-  visible_posts: z.number().int().nonnegative(),
-  visible_questions: z.number().int().nonnegative(),
-  study_groups: z.number().int().nonnegative(),
-  active_memberships: z.number().int().nonnegative(),
-  pending_reports: z.number().int().nonnegative(),
-  suspended_learners: z.number().int().nonnegative(),
-});
-
-const ownerLearnerSchema = z.object({
-  user_id: z.uuid(),
-  display_name: z.string(),
-  community_suspended_until: z.iso.datetime({ offset: true }).nullable(),
 });
 
 const commentRowSchema = z.object({
@@ -137,15 +107,14 @@ const notificationRowSchema = z.object({
   read_at: z.iso.datetime({ offset: true }).nullable(),
 });
 
-const featureKeys = [
-  "community_enabled",
-  "community_posts_enabled",
-  "community_questions_enabled",
-  "study_groups_enabled",
-  "community_notifications_enabled",
-] as const;
-
-export type CommunityFeatures = Record<(typeof featureKeys)[number], boolean>;
+export type CommunityFeatures = Record<
+  | "community_enabled"
+  | "community_posts_enabled"
+  | "community_questions_enabled"
+  | "study_groups_enabled"
+  | "community_notifications_enabled",
+  boolean
+>;
 
 export class CommunityDataError extends Error {
   constructor(message: string) {
@@ -159,7 +128,23 @@ function fail(message: string, code?: string | null): never {
   throw new CommunityDataError(message);
 }
 
-async function loadVisibleProfiles(supabase: SupabaseClient, userIds: string[]) {
+async function assertCommunityParticipation(
+  supabase: DatabaseClient,
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from("community_profiles")
+    .select("community_suspended_until")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) fail("Community participation could not be verified.", error.code);
+  if (
+    data?.community_suspended_until &&
+    Date.parse(data.community_suspended_until) > Date.now()
+  ) fail("Community participation is currently unavailable.");
+}
+
+async function loadVisibleProfiles(supabase: DatabaseClient, userIds: string[]) {
   const ids = [...new Set(userIds)];
   if (!ids.length) return new Map<string, z.infer<typeof profileRowSchema>>();
   const { data, error } = await supabase
@@ -172,22 +157,32 @@ async function loadVisibleProfiles(supabase: SupabaseClient, userIds: string[]) 
   return new Map(parsed.data.map((profile) => [profile.user_id, profile]));
 }
 
+async function loadActiveLearnerIds(supabase: DatabaseClient, userIds: string[]) {
+  const ids = [...new Set(userIds)];
+  if (!ids.length) return new Set<string>();
+  const { data, error } = await supabase
+    .from("guest_workspaces")
+    .select("id")
+    .in("id", ids)
+    .gt("expires_at", new Date().toISOString());
+  if (error) fail("Active community member status could not be verified.", error.code);
+  return new Set((data ?? []).map((row) => row.id));
+}
+
 export async function loadCommunityFeed(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
   userId: string,
+  guestTokenHash: string,
   page: number,
   groupId?: string,
 ) {
+  await assertCommunityParticipation(supabase, userId);
   const safePage = Math.max(1, Math.min(1000, Math.floor(page)));
-  const start = (safePage - 1) * 20;
-  let feedQuery = supabase
-    .from("community_posts")
-    .select("id,author_id,group_id,post_type,body,created_at")
-    .eq("moderation_status", "visible")
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
-  if (groupId) feedQuery = feedQuery.eq("group_id", groupId);
-  const { data, error } = await feedQuery.range(start, start + 20);
+  const { data, error } = await supabase.rpc("guest_list_community_posts", {
+    p_token_hash: guestTokenHash,
+    p_page: safePage,
+    p_group_id: groupId ?? null,
+  });
   if (error) fail("The community feed could not be loaded.", error.code);
   const parsedPosts = z.array(postRowSchema).safeParse(data);
   if (!parsedPosts.success) fail("Community posts failed validation.");
@@ -196,14 +191,14 @@ export async function loadCommunityFeed(
 
   const postIds = posts.map((post) => post.id);
   const [statsResult, commentsResult] = await Promise.all([
-    supabase.rpc("community_post_statistics", { p_post_ids: postIds }),
-    supabase
-      .from("community_comments")
-      .select("id,author_id,post_id,answer_id,parent_comment_id,body,created_at")
-      .in("post_id", postIds)
-      .eq("moderation_status", "visible")
-      .order("created_at", { ascending: true })
-      .limit(100),
+    supabase.rpc("guest_community_post_statistics", {
+      p_token_hash: guestTokenHash,
+      p_post_ids: postIds,
+    }),
+    supabase.rpc("guest_list_post_comments", {
+      p_token_hash: guestTokenHash,
+      p_post_ids: postIds,
+    }),
   ]);
   if (statsResult.error) fail("Post reaction and comment totals could not be loaded.", statsResult.error.code);
   if (commentsResult.error) fail("Post comments could not be loaded.", commentsResult.error.code);
@@ -253,26 +248,21 @@ export async function loadCommunityFeed(
 }
 
 export async function loadCommunityQuestions(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
   userId: string,
+  guestTokenHash: string,
   filters: { subject?: string; topic?: string; status?: string; search?: string },
 ) {
-  let query = supabase
-    .from("community_questions")
-    .select("id,author_id,group_id,title,body,subject,topic,question_status,accepted_answer_id,created_at")
-    .eq("moderation_status", "visible")
-    .order("created_at", { ascending: false })
-    .limit(20);
-  if (filters.subject) query = query.eq("subject", filters.subject);
-  if (filters.topic) query = query.ilike("topic", `%${filters.topic.replace(/[%_]/g, "")}%`);
-  if (filters.status === "open" || filters.status === "answered" || filters.status === "closed") {
-    query = query.eq("question_status", filters.status);
-  }
-  if (filters.search) {
-    const safeSearch = filters.search.replace(/[%_,]/g, " ").trim();
-    if (safeSearch) query = query.ilike("title", `%${safeSearch}%`);
-  }
-  const { data, error } = await query;
+  await assertCommunityParticipation(supabase, userId);
+  const { data, error } = await supabase.rpc("guest_list_community_questions", {
+    p_token_hash: guestTokenHash,
+    p_subject: filters.subject ?? null,
+    p_topic: filters.topic?.replace(/[%_]/g, "") ?? null,
+    p_status: ["open", "answered", "closed"].includes(filters.status ?? "")
+      ? filters.status
+      : null,
+    p_search: filters.search?.replace(/[%_,]/g, " ").trim() ?? null,
+  });
   if (error) fail("Questions could not be loaded.", error.code);
   const parsedQuestions = z.array(questionRowSchema).safeParse(data);
   if (!parsedQuestions.success) fail("Community questions failed validation.");
@@ -280,25 +270,22 @@ export async function loadCommunityQuestions(
   if (!questions.length) return [];
 
   const questionIds = questions.map((question) => question.id);
-  const { data: answerData, error: answerError } = await supabase
-    .from("community_answers")
-    .select("id,question_id,author_id,body,created_at")
-    .in("question_id", questionIds)
-    .eq("moderation_status", "visible")
-    .order("created_at", { ascending: true })
-    .limit(100);
+  const { data: answerData, error: answerError } = await supabase.rpc(
+    "guest_list_question_answers",
+    {
+      p_token_hash: guestTokenHash,
+      p_question_ids: questionIds,
+    },
+  );
   if (answerError) fail("Question answers could not be loaded.", answerError.code);
   const parsedAnswers = z.array(answerRowSchema).safeParse(answerData);
   if (!parsedAnswers.success) fail("Question answers failed validation.");
   const answerIds = parsedAnswers.data.map((answer) => answer.id);
   const { data: commentData, error: commentError } = answerIds.length
-    ? await supabase
-        .from("community_comments")
-        .select("id,author_id,post_id,answer_id,parent_comment_id,body,created_at")
-        .in("answer_id", answerIds)
-        .eq("moderation_status", "visible")
-        .order("created_at", { ascending: true })
-        .limit(100)
+    ? await supabase.rpc("guest_list_answer_comments", {
+        p_token_hash: guestTokenHash,
+        p_answer_ids: answerIds,
+      })
     : { data: [], error: null };
   if (commentError) fail("Answer comments could not be loaded.", commentError.code);
   const parsedComments = z.array(commentRowSchema).safeParse(commentData);
@@ -347,18 +334,22 @@ export async function loadCommunityQuestions(
   }));
 }
 
-export async function loadStudyGroups(supabase: SupabaseClient, userId: string) {
-  const { data, error } = await supabase
-    .from("study_groups")
-    .select("id,created_by,name,description,subject,visibility,created_at")
-    .order("created_at", { ascending: false })
-    .limit(20);
+export async function loadStudyGroups(
+  supabase: DatabaseClient,
+  userId: string,
+  guestTokenHash: string,
+) {
+  await assertCommunityParticipation(supabase, userId);
+  const { data, error } = await supabase.rpc("guest_list_study_groups", {
+    p_token_hash: guestTokenHash,
+  });
   if (error) fail("Study groups could not be loaded.", error.code);
   const parsedGroups = z.array(groupRowSchema).safeParse(data);
   if (!parsedGroups.success) fail("Study group data failed validation.");
   if (!parsedGroups.data.length) return { groups: [], requests: [], members: [] };
   const groupIds = parsedGroups.data.map((group) => group.id);
-  const statsResult = await supabase.rpc("community_group_statistics", {
+  const statsResult = await supabase.rpc("guest_community_group_statistics", {
+    p_token_hash: guestTokenHash,
     p_group_ids: groupIds,
   });
   if (statsResult.error) fail("Study group membership totals could not be loaded.", statsResult.error.code);
@@ -366,19 +357,30 @@ export async function loadStudyGroups(supabase: SupabaseClient, userId: string) 
   if (!parsedStats.success || parsedStats.data.length !== parsedGroups.data.length) {
     fail("Study group membership totals failed validation.");
   }
+  const stats = new Map(parsedStats.data.map((item) => [item.group_id, item]));
+  const adminGroupIds = parsedGroups.data
+    .filter((group) => group.created_by === userId || stats.get(group.id)?.is_admin)
+    .map((group) => group.id);
+  const memberGroupIds = parsedGroups.data
+    .filter((group) => stats.get(group.id)?.my_status === "active")
+    .map((group) => group.id);
   const [requestResult, memberResult] = await Promise.all([
-    supabase
+    adminGroupIds.length
+      ? supabase
       .from("study_group_members")
       .select("id,group_id,user_id,member_role,membership_status,created_at")
-      .in("group_id", groupIds)
+      .in("group_id", adminGroupIds)
       .eq("membership_status", "pending")
-      .limit(100),
-    supabase
+      .limit(100)
+      : Promise.resolve({ data: [], error: null }),
+    memberGroupIds.length
+      ? supabase
       .from("study_group_members")
       .select("id,group_id,user_id,member_role,membership_status,created_at")
-      .in("group_id", groupIds)
+      .in("group_id", memberGroupIds)
       .eq("membership_status", "active")
-      .limit(100),
+      .limit(100)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   if (requestResult.error || memberResult.error) {
     fail("Study group members could not be loaded.", requestResult.error?.code ?? memberResult.error?.code);
@@ -386,8 +388,17 @@ export async function loadStudyGroups(supabase: SupabaseClient, userId: string) 
   const parsedRequests = z.array(groupMemberSchema).safeParse(requestResult.data);
   const parsedMembers = z.array(groupMemberSchema).safeParse(memberResult.data);
   if (!parsedRequests.success || !parsedMembers.success) fail("Study group members failed validation.");
-  const stats = new Map(parsedStats.data.map((item) => [item.group_id, item]));
-  const userIds = [...parsedMembers.data, ...parsedRequests.data].map((member) => member.user_id);
+  const activeLearners = await loadActiveLearnerIds(supabase, [
+    ...parsedRequests.data.map((member) => member.user_id),
+    ...parsedMembers.data.map((member) => member.user_id),
+  ]);
+  const requests = parsedRequests.data.filter((member) =>
+    activeLearners.has(member.user_id)
+  );
+  const members = parsedMembers.data.filter((member) =>
+    activeLearners.has(member.user_id)
+  );
+  const userIds = [...members, ...requests].map((member) => member.user_id);
   const profileMap = await loadVisibleProfiles(supabase, userIds);
   const memberDto = (member: z.infer<typeof groupMemberSchema>) => ({
     ...member,
@@ -404,26 +415,30 @@ export async function loadStudyGroups(supabase: SupabaseClient, userId: string) 
       ...group,
       stats: stats.get(group.id)!,
     })),
-    requests: parsedRequests.data.map(memberDto),
-    members: parsedMembers.data.map(memberDto),
+    requests: requests.map(memberDto),
+    members: members.map(memberDto),
   };
 }
 
 export async function loadStudyGroupDetail(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
   userId: string,
+  guestTokenHash: string,
   groupId: string,
 ) {
-  const { data, error } = await supabase
-    .from("study_groups")
-    .select("id,created_by,name,description,subject,visibility,created_at")
-    .eq("id", groupId)
-    .maybeSingle();
+  await assertCommunityParticipation(supabase, userId);
+  const { data, error } = await supabase.rpc("guest_get_study_group", {
+    p_token_hash: guestTokenHash,
+    p_group_id: groupId,
+  });
   if (error) fail("The study group could not be loaded.", error.code);
-  if (!data) return null;
-  const parsedGroup = groupRowSchema.safeParse(data);
+  if (!data || (Array.isArray(data) && !data.length)) return null;
+  const parsedGroup = groupRowSchema.safeParse(
+    Array.isArray(data) ? data[0] ?? null : data,
+  );
   if (!parsedGroup.success) fail("Study group data failed validation.");
-  const statsResult = await supabase.rpc("community_group_statistics", {
+  const statsResult = await supabase.rpc("guest_community_group_statistics", {
+    p_token_hash: guestTokenHash,
     p_group_ids: [groupId],
   });
   if (statsResult.error) fail("Study group membership totals could not be loaded.", statsResult.error.code);
@@ -432,18 +447,22 @@ export async function loadStudyGroupDetail(
     fail("Study group membership totals failed validation.");
   }
   const [requestResult, memberResult] = await Promise.all([
-    supabase
+    parsedStats.data[0].is_admin
+      ? supabase
       .from("study_group_members")
       .select("id,group_id,user_id,member_role,membership_status,created_at")
       .eq("group_id", groupId)
       .eq("membership_status", "pending")
-      .limit(100),
-    supabase
+      .limit(100)
+      : Promise.resolve({ data: [], error: null }),
+    parsedStats.data[0].my_status === "active"
+      ? supabase
       .from("study_group_members")
       .select("id,group_id,user_id,member_role,membership_status,created_at")
       .eq("group_id", groupId)
       .eq("membership_status", "active")
-      .limit(100),
+      .limit(100)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   if (requestResult.error || memberResult.error) {
     fail("Study group members could not be loaded.", requestResult.error?.code ?? memberResult.error?.code);
@@ -451,9 +470,19 @@ export async function loadStudyGroupDetail(
   const parsedRequests = z.array(groupMemberSchema).safeParse(requestResult.data);
   const parsedMembers = z.array(groupMemberSchema).safeParse(memberResult.data);
   if (!parsedRequests.success || !parsedMembers.success) fail("Study group members failed validation.");
-  const profiles = await loadVisibleProfiles(supabase, [
+  const activeLearners = await loadActiveLearnerIds(supabase, [
     ...parsedRequests.data.map((member) => member.user_id),
     ...parsedMembers.data.map((member) => member.user_id),
+  ]);
+  const requests = parsedRequests.data.filter((member) =>
+    activeLearners.has(member.user_id)
+  );
+  const members = parsedMembers.data.filter((member) =>
+    activeLearners.has(member.user_id)
+  );
+  const profiles = await loadVisibleProfiles(supabase, [
+    ...requests.map((member) => member.user_id),
+    ...members.map((member) => member.user_id),
   ]);
   const memberDto = (member: z.infer<typeof groupMemberSchema>) => ({
     id: member.id,
@@ -471,28 +500,24 @@ export async function loadStudyGroupDetail(
   return {
     group: parsedGroup.data,
     stats: parsedStats.data[0],
-    requests: parsedRequests.data.map(memberDto),
-    members: parsedMembers.data.map(memberDto),
+    requests: requests.map(memberDto),
+    members: members.map(memberDto),
   };
 }
 
-export async function loadCommunityFeatures(
-  supabase: SupabaseClient,
-): Promise<CommunityFeatures> {
-  const entries = await Promise.all(featureKeys.map(async (key) => {
-    const { data, error } = await supabase.rpc("is_feature_enabled", {
-      p_key: key,
-    });
-    if (error) fail("Community feature availability could not be checked.", error.code);
-    return [key, data === true] as const;
-  }));
-  return Object.fromEntries(entries) as CommunityFeatures;
+export async function loadCommunityFeatures(): Promise<CommunityFeatures> {
+  return getFeatureSnapshot() as CommunityFeatures;
 }
 
-export async function loadCommunityNotifications(supabase: SupabaseClient) {
+export async function loadCommunityNotifications(
+  supabase: DatabaseClient,
+  userId: string,
+) {
+  await assertCommunityParticipation(supabase, userId);
   const { data, error } = await supabase
     .from("community_notifications")
     .select("id,actor_id,event_type,target_type,target_id,created_at,read_at")
+    .eq("recipient_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) fail("Community notifications could not be loaded.", error.code);
@@ -511,10 +536,12 @@ export async function loadCommunityNotifications(supabase: SupabaseClient) {
   });
 }
 
-export async function loadCommunityBlocks(supabase: SupabaseClient) {
+export async function loadCommunityBlocks(supabase: DatabaseClient, userId: string) {
+  await assertCommunityParticipation(supabase, userId);
   const { data, error } = await supabase
     .from("community_blocks")
     .select("blocked_id,created_at")
+    .eq("blocker_id", userId)
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) fail("Blocked community members could not be loaded.", error.code);
@@ -536,77 +563,8 @@ export async function loadCommunityBlocks(supabase: SupabaseClient) {
   }));
 }
 
-export async function loadCommunityModeration(
-  supabase: SupabaseClient,
-  search?: string,
-) {
-  const [overviewResult, learnerResult, reportsResult] = await Promise.all([
-    supabase.rpc("owner_community_overview"),
-    supabase.rpc("owner_list_community_learners", {
-      p_limit: 100,
-      p_search: search?.trim() || null,
-    }),
-    supabase
-      .from("community_reports")
-      .select("id,reported_by,target_type,target_id,reason,created_at")
-      .eq("report_status", "pending")
-      .order("created_at", { ascending: true })
-      .limit(50),
-  ]);
-  if (overviewResult.error || learnerResult.error || reportsResult.error) {
-    fail(
-      "Community moderation data could not be loaded.",
-      overviewResult.error?.code ?? learnerResult.error?.code ?? reportsResult.error?.code,
-    );
-  }
-  const overview = z.array(ownerOverviewSchema).safeParse(overviewResult.data);
-  const learners = z.array(ownerLearnerSchema).safeParse(learnerResult.data);
-  const reports = z.array(reportRowSchema).safeParse(reportsResult.data);
-  if (!overview.success || overview.data.length !== 1 || !learners.success || !reports.success) {
-    fail("Community moderation data failed validation.");
-  }
-
-  const byType = (targetType: z.infer<typeof reportRowSchema>["target_type"]) =>
-    reports.data.filter((report) => report.target_type === targetType).map((report) => report.target_id);
-  const [postsResult, commentsResult, questionsResult, answersResult] = await Promise.all([
-    byType("post").length
-      ? supabase.from("community_posts").select("id,author_id,body").in("id", byType("post"))
-      : Promise.resolve({ data: [], error: null }),
-    byType("comment").length
-      ? supabase.from("community_comments").select("id,author_id,body").in("id", byType("comment"))
-      : Promise.resolve({ data: [], error: null }),
-    byType("question").length
-      ? supabase.from("community_questions").select("id,author_id,title,body").in("id", byType("question"))
-      : Promise.resolve({ data: [], error: null }),
-    byType("answer").length
-      ? supabase.from("community_answers").select("id,author_id,body").in("id", byType("answer"))
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-  const contentResults = [postsResult, commentsResult, questionsResult, answersResult];
-  const failedContent = contentResults.find((result) => result.error);
-  if (failedContent?.error) fail("Reported content could not be loaded.", failedContent.error.code);
-
-  const contentMap = new Map<string, z.infer<typeof moderationTextSchema>>();
-  for (const result of contentResults) {
-    const parsedContent = z.array(moderationTextSchema).safeParse(result.data);
-    if (!parsedContent.success) fail("Reported content failed validation.");
-    for (const content of parsedContent.data) contentMap.set(content.id, content);
-  }
-  return {
-    overview: overview.data[0],
-    learners: learners.data.map((learner) => ({
-      ...learner,
-      suspended: learner.community_suspended_until !== null &&
-        Date.parse(learner.community_suspended_until) > Date.now(),
-    })),
-    reports: reports.data.map((report) => ({
-      ...report,
-      content: contentMap.get(report.target_id) ?? null,
-    })),
-  };
-}
-
-export async function loadOwnCommunityProfile(supabase: SupabaseClient, userId: string) {
+export async function loadOwnCommunityProfile(supabase: DatabaseClient, userId: string) {
+  await assertCommunityParticipation(supabase, userId);
   const { data, error } = await supabase
     .from("community_profiles")
     .select("user_id,display_name,avatar_url,biography,learning_interests,subjects,profile_visible,show_achievements")
@@ -620,9 +578,12 @@ export async function loadOwnCommunityProfile(supabase: SupabaseClient, userId: 
 }
 
 export async function loadPublicCommunityProfile(
-  supabase: SupabaseClient,
+  supabase: DatabaseClient,
+  viewerId: string,
+  guestTokenHash: string,
   userId: string,
 ) {
+  await assertCommunityParticipation(supabase, viewerId);
   const { data, error } = await supabase
     .from("community_profiles")
     .select("user_id,display_name,avatar_url,biography,learning_interests,subjects,profile_visible,show_achievements")
@@ -634,10 +595,36 @@ export async function loadPublicCommunityProfile(
   if (!parsed.success || !parsed.data.profile_visible) {
     fail("Community profile data failed validation.");
   }
+  const activeLearners = await loadActiveLearnerIds(supabase, [userId]);
+  if (!activeLearners.has(userId)) return null;
+  const [outgoingBlock, incomingBlock] = await Promise.all([
+    supabase
+      .from("community_blocks")
+      .select("blocker_id")
+      .eq("blocker_id", viewerId)
+      .eq("blocked_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("community_blocks")
+      .select("blocker_id")
+      .eq("blocker_id", userId)
+      .eq("blocked_id", viewerId)
+      .maybeSingle(),
+  ]);
+  if (outgoingBlock.error || incomingBlock.error) {
+    fail(
+      "Community profile access could not be verified.",
+      outgoingBlock.error?.code ?? incomingBlock.error?.code,
+    );
+  }
+  if (outgoingBlock.data || incomingBlock.data) return null;
   if (!parsed.data.show_achievements) return { ...parsed.data, badges: [] };
   const { data: badgeData, error: badgeError } = await supabase.rpc(
-    "community_visible_badges",
-    { p_user_id: userId },
+    "guest_community_visible_badges",
+    {
+      p_token_hash: guestTokenHash,
+      p_user_id: userId,
+    },
   );
   if (badgeError) fail("Public learner achievements could not be loaded.", badgeError.code);
   const badgeSchema = z.array(z.object({

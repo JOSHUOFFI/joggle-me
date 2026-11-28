@@ -1,5 +1,11 @@
 # Development Roadmap
 
+> Historical plan: its account, authentication, profile, and Owner portal
+> milestones were superseded by anonymous guest workspaces. See
+> [SYSTEM_ARCHITECTURE.md](./SYSTEM_ARCHITECTURE.md) and the
+> [decommission report](./AUTH_DECOMMISSION_REPORT.md) for the current design
+> and remaining verification work.
+
 ## Phase 0: Architecture and product foundation
 
 ### Objectives

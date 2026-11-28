@@ -1,4 +1,4 @@
-# Phase 1 setup
+# Application setup
 
 ## Local application
 
@@ -8,26 +8,25 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Configure:
+Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_APP_URL`, and the
+server-only `SUPABASE_SERVICE_ROLE_KEY`. Gemini integration uses
+`GEMINI_API_KEY`; do not place any secret in a `NEXT_PUBLIC_*` variable.
+Supabase is used for PostgreSQL and private Storage. The application has no
+user accounts or sign-in provider.
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `NEXT_PUBLIC_APP_URL`
-- `SUPABASE_SERVICE_ROLE_KEY` only for server administrative tooling
-
-The publishable key is browser-safe. The service-role key must never be placed in `NEXT_PUBLIC_*` variables or client modules.
+The first visit creates an anonymous workspace. The browser receives a random
+HttpOnly capability cookie while the database stores only its SHA-256 hash.
+The cookie cannot be recovered if cleared, so users should understand that
+workspace data is associated with that browser capability.
 
 ## Database
 
-See [supabase/README.md](../supabase/README.md). Local only.
+See [the Supabase setup guide](../supabase/README.md) and
+[the authentication decommission report](./AUTH_DECOMMISSION_REPORT.md).
+Check the configured project reference before using the application or running
+database commands. Never connect to production for local development.
 
-Do not run migrations against production. Verify RLS and owner authorization in a development Supabase project before any production approval.
-
-## Owner provisioning
-
-No public owner registration is provided. A verified Supabase Auth user is assigned the owner role only through the service-role-only `provision_initial_owner` RPC. Remove the initial owner user ID and service-role configuration after provisioning.
-
-## Testing
+## Verification
 
 ```powershell
 npm run test
@@ -38,8 +37,5 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-End-to-end authentication and owner workflows require the same isolated Supabase development project credentials. Without credentials, public UI pages can start, but authenticated and owner flows cannot be claimed as tested.
-
-## External configuration status
-
-The repository does not contain credentials and does not attempt to connect to production. Supabase Auth, database migrations, RLS, and owner provisioning remain unverified until an isolated development project is configured and tested.
+Browser tests that create a workspace require valid development Supabase
+credentials. They must never run against production.

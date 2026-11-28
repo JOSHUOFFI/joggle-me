@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getAuthenticatedUser, parseAppRoles } from "@/lib/auth";
-import { logger } from "@/lib/logger";
+import { getGuestWorkspace } from "@/lib/guest-workspace";
 
 export const examJson = (body: object, status = 200) =>
   NextResponse.json(body, {
@@ -32,43 +31,16 @@ export function isSameOriginExamRequest(request: NextRequest) {
 }
 
 export async function getExamLearnerContext() {
-  const { supabase, user } = await getAuthenticatedUser();
-  if (!user) {
-    return { ok: false as const, response: examJson({ message: "Log in to continue." }, 401) };
-  }
-
-  const { data: active, error: activeError } = await supabase.rpc(
-    "is_account_active",
-    { p_user_id: user.id },
-  );
-  if (activeError) {
-    logger.error("Examination account status check failed");
+  const context = await getGuestWorkspace();
+  const { supabase, user } = context;
+  if (!user || !supabase) {
     return {
       ok: false as const,
-      response: examJson({ message: "We couldn’t verify your account. Please retry." }, 503),
+      response: examJson(
+        { message: "Start a guest workspace to continue." },
+        401,
+      ),
     };
   }
-  if (active !== true) {
-    return {
-      ok: false as const,
-      response: examJson({ message: "Your account cannot take examinations." }, 403),
-    };
-  }
-
-  const { data: roleRows, error: roleError } = await supabase.rpc("get_my_roles");
-  if (roleError) {
-    logger.error("Examination role check failed");
-    return {
-      ok: false as const,
-      response: examJson({ message: "We couldn’t verify your account role. Please retry." }, 503),
-    };
-  }
-  if (!parseAppRoles(roleRows).includes("learner")) {
-    return {
-      ok: false as const,
-      response: examJson({ message: "Only learner accounts can take examinations." }, 403),
-    };
-  }
-
   return { ok: true as const, supabase, user };
 }
